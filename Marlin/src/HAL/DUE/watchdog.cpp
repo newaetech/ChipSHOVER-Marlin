@@ -111,4 +111,16 @@ void watchdogSetup() {
   }
 #endif // USE_WATCHDOG
 
+
+#if ENABLED(USE_WATCHDOG)
+  // Reset watchdog. MUST be called at least every 4 seconds after the
+  // first watchdog_init or AVR will go into emergency procedures.
+  void HAL_watchdog_refresh(void){
+    #if DISABLED(PINS_DEBUGGING) && PIN_EXISTS(LED)
+      TOGGLE(LED_PIN);  // heartbeat indicator
+    #endif
+    watchdogReset();   
+  }
+#endif // USE_WATCHDOG
+
 #endif

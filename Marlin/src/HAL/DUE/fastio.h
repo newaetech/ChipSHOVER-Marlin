@@ -530,6 +530,22 @@
   #define DIO108_PIN 9
   #define DIO108_WPORT PIOB
 
+/** ADDED FOR CHIPSHOVER ONLY **/
+  #define DIO109_PIN 22
+  #define DIO109_WPORT PIOC
+
+  #define DIO110_PIN 21
+  #define DIO110_WPORT PIOC
+
+  #define DIO111_PIN 23
+  #define DIO111_WPORT PIOB
+
+  #define DIO112_PIN 25
+  #define DIO112_WPORT PIOB
+
+  #define DIO113_PIN 25
+  #define DIO113_WPORT PIOC
+
 #else // !ARDUINO_SAM_ARCHIM
 
   #define DIO92_PIN 5

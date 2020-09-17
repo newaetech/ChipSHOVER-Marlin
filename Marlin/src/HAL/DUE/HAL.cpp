@@ -48,6 +48,46 @@ void HAL_init() {
   #if ENABLED(SDSUPPORT)
     OUT_WRITE(SDSS, HIGH);  // Try to set SDSS inactive before any other SPI users start up
   #endif
+
+  #if PIN_EXISTS(LED_ESTOP)
+    SET_OUTPUT(LED_ESTOP_PIN);
+    WRITE(LED_ESTOP_PIN, 0);
+  #endif
+
+  #if PIN_EXISTS(LED_BUSY)
+    SET_OUTPUT(LED_BUSY_PIN);
+    WRITE(LED_BUSY_PIN, 0);
+  #endif
+
+  #if PIN_EXISTS(LED_STOP)
+    SET_OUTPUT(LED_STOP_PIN);
+    WRITE(LED_STOP_PIN, 0);
+  #endif
+
+  #if PIN_EXISTS(LED_CLKOK)
+    SET_OUTPUT(LED_CLKOK_PIN);
+    WRITE(LED_CLKOK_PIN, 1);
+  #endif
+
+  #if PIN_EXISTS(LED_I2COK)
+    SET_OUTPUT(LED_I2COK_PIN);
+    WRITE(LED_I2COK_PIN, 0);
+  #endif
+
+  #if PIN_EXISTS(LED_BOOTOK)
+    SET_OUTPUT(LED_BOOTOK_PIN);
+    WRITE(LED_BOOTOK_PIN, 1);
+  #endif
+
+  SET_OUTPUT(TMC_SW_SCK);
+  SET_OUTPUT(TMC_SW_MOSI);
+
+  #if DISABLED(PINS_DEBUGGING) && PIN_EXISTS(LED)
+    SET_OUTPUT(LED_PIN);  // heartbeat indicator
+  #endif
+
+  
+
   usb_task_init();
 }
 
