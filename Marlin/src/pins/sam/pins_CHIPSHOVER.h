@@ -164,8 +164,8 @@
 #define LED_PIN LED_HBEAT_PIN /* Default Heartbeat */
 
 // I2C EEPROM with 4K of space
-#define I2C_EEPROM
-#define MARLIN_EEPROM_SIZE                0x1000
+//#define I2C_EEPROM
+//#define MARLIN_EEPROM_SIZE                0x1000
 
 //#define PIN_WIRE_SDA 70 /* PA17 */
 //#define PIN_WIRE_SCL 71 /* PA18 */
