@@ -77,6 +77,10 @@ void HAL_init() {
     WRITE(LED_BOOTOK_PIN, 1);
   #endif
 
+  /* TEMP HACK */
+  SET_OUTPUT(FAN_ON);
+  WRITE(FAN_ON, 1);
+
   SET_OUTPUT(TMC_SW_SCK);
   SET_OUTPUT(TMC_SW_MOSI);
 
