@@ -116,6 +116,10 @@
   #define HAS_TMC220x 1
 #endif
 
+#if HAS_DRIVER(TMC2660)
+  #define HAS_TMC2660 1
+#endif
+
 #define AXIS_IS_TMC(A)   (    AXIS_DRIVER_TYPE(A,TMC2130) || AXIS_DRIVER_TYPE(A,TMC2160) \
                            || AXIS_DRIVER_TYPE(A,TMC2208) || AXIS_DRIVER_TYPE(A,TMC2209) \
                            || AXIS_DRIVER_TYPE(A,TMC2660) \

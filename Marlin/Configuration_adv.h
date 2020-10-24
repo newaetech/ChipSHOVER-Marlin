@@ -2231,7 +2231,7 @@
   #if AXIS_IS_TMC(X)
     #define X_CURRENT       1200        // (mA) RMS current. Multiply by 1.414 for peak current.
     #define X_CURRENT_HOME  X_CURRENT  // (mA) RMS current for sensorless homing
-    #define X_MICROSTEPS     8    // 0..256
+    #define X_MICROSTEPS     32    // 0..256
     #define X_RSENSE          0.10 /*0.12*/
     #define X_CHAIN_POS      -1    // <=0 : Not chained. 1 : MCU MOSI connected. 2 : Next in chain, ...
   #endif
@@ -2247,7 +2247,7 @@
   #if AXIS_IS_TMC(Y)
     #define Y_CURRENT       1200
     #define Y_CURRENT_HOME  Y_CURRENT
-    #define Y_MICROSTEPS     8
+    #define Y_MICROSTEPS     32
     #define Y_RSENSE          0.10 /*0.12*/
     #define Y_CHAIN_POS      -1
   #endif
@@ -2263,7 +2263,7 @@
   #if AXIS_IS_TMC(Z)
     #define Z_CURRENT       1200
     #define Z_CURRENT_HOME  Z_CURRENT
-    #define Z_MICROSTEPS     8
+    #define Z_MICROSTEPS     32
     #define Z_RSENSE          0.10 /*0.12*/
     #define Z_CHAIN_POS      -1
   #endif
@@ -2439,7 +2439,7 @@
    * Define you own with
    * { <off_time[1..15]>, <hysteresis_end[-3..12]>, hysteresis_start[1..8] }
    */
-  #define CHOPPER_TIMING CHOPPER_DEFAULT_24V
+  #define CHOPPER_TIMING CHOPPER_DEFAULT_24V /*{ 4,  2, 1 }*/
 
   /**
    * Monitor Trinamic drivers
@@ -2547,7 +2547,7 @@
    * Enable M122 debugging command for TMC stepper drivers.
    * M122 S0/1 will enable continous reporting.
    */
-  //#define TMC_DEBUG
+  #define TMC_DEBUG
 
   /**
    * You can set your own advanced settings by filling in predefined functions.
@@ -2560,7 +2560,11 @@
    *   stepperY.intpol(0); \
    * }
    */
-  #define TMC_ADV() {  }
+  #define TMC_ADV() { \
+      stepperX.sgt(8);\
+      stepperY.sgt(8);\
+      stepperZ.sgt(8);\
+  }
 
 #endif // HAS_TRINAMIC_CONFIG
 
@@ -3523,4 +3527,4 @@
 //#define PINS_DEBUGGING
 
 // Enable Marlin dev mode which adds some special commands
-//#define MARLIN_DEV_MODE
+#define MARLIN_DEV_MODE

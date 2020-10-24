@@ -38,6 +38,9 @@
   #if ENABLED(MONITOR_DRIVER_STATUS)
     static uint16_t report_tmc_status_interval; // = 0
   #endif
+  #if HAS_TMC2660
+    #define HAS_STALLGUARD 1
+  #endif
 #endif
 
 #if HAS_LCD_MENU
@@ -689,6 +692,7 @@
       case TMC_HEND: SERIAL_PRINT(st.hysteresis_end(), DEC); break;
       case TMC_HSTRT: SERIAL_PRINT(st.hysteresis_start(), DEC); break;
       case TMC_MSCNT: SERIAL_PRINT(st.get_microstep_counter(), DEC); break;
+      case TMC_STALLGUARD: if (st.stallguard()) SERIAL_CHAR('*'); break;
       default: _tmc_status(st, i); break;
     }
   }
@@ -705,6 +709,10 @@
         case TMC_MAX_CURRENT: SERIAL_PRINT((float)st.rms_current() * 1.41, 0); break;
         case TMC_IRUN:
           SERIAL_PRINT(st.cs(), DEC);
+          SERIAL_ECHOPGM("/31");
+          break;
+        case TMC_CS_ACTUAL:
+          SERIAL_PRINT(st.se(), DEC);
           SERIAL_ECHOPGM("/31");
           break;
         case TMC_VSENSE: serialprintPGM(st.vsense() ? PSTR("1=.165") : PSTR("0=.310")); break;
@@ -733,6 +741,7 @@
       case TMC_S2GA:          if (st.s2ga())    SERIAL_CHAR('*'); break;
       case TMC_DRV_OTPW:      if (st.otpw())    SERIAL_CHAR('*'); break;
       case TMC_OT:            if (st.ot())      SERIAL_CHAR('*'); break;
+      case TMC_SG_RESULT: SERIAL_PRINT(st.sg_result(), DEC); break;
       case TMC_DRV_STATUS_HEX: {
         const uint32_t drv_status = st.DRV_STATUS();
         SERIAL_CHAR('\t');
@@ -923,14 +932,14 @@
     TMC_REPORT(" -start\t",          TMC_HSTRT);
     TMC_REPORT("Stallguard thrs",    TMC_SGT);
     TMC_REPORT("uStep count",        TMC_MSCNT);
-    DRV_REPORT("DRVSTATUS",          TMC_DRV_CODES);
-    #if HAS_TMCX1X0 || HAS_TMC220x
+    #if HAS_TMCX1X0 || HAS_TMC220x || HAS_TMC2660
       DRV_REPORT("sg_result",        TMC_SG_RESULT);
     #endif
     #if HAS_TMCX1X0
       DRV_REPORT("stallguard",       TMC_STALLGUARD);
       DRV_REPORT("fsactive",         TMC_FSACTIVE);
     #endif
+    DRV_REPORT("DRVSTATUS",          TMC_DRV_CODES);
     DRV_REPORT("stst\t",             TMC_STST);
     DRV_REPORT("olb\t",              TMC_OLB);
     DRV_REPORT("ola\t",              TMC_OLA);

@@ -76,8 +76,9 @@
 #define Y_MIN_PIN  Y_ES1
 #define Y_MAX_PIN  Y_ES2
 
-#define Z_MIN_PIN  Z_ES1
-#define Z_MAX_PIN  Z_ES2
+/* We switch Z-Min & Z-Max, as 'home' is the max position */
+#define Z_MIN_PIN  Z_ES2
+#define Z_MAX_PIN  Z_ES1
 
 
 //
@@ -162,6 +163,13 @@
 
 #define LED_PIN LED_HBEAT_PIN /* Default Heartbeat */
 
+// I2C EEPROM with 4K of space
+#define I2C_EEPROM
+#define MARLIN_EEPROM_SIZE                0x1000
+
+//#define PIN_WIRE_SDA 70 /* PA17 */
+//#define PIN_WIRE_SCL 71 /* PA18 */
+
 /*
 // Case Light
 
@@ -169,6 +177,8 @@
   #define CASE_LIGHT_PIN          GPIO_PB1_J20_5
 #endif
 */
+
+#define BOARD_INIT() 
 
 
 #define TEMP_0_PIN 0
