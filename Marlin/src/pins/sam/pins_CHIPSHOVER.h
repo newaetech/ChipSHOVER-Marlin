@@ -60,12 +60,12 @@
 //
 
 #define X_ES0 6    /* PC24 */
-#define X_ES1 4    /* PC26 */
+#define X_ES1 3    /* PC28 */ /*TEST*/
 #define X_ES2 106  /* PC27 */
 
 #define Y_ES0 18   /* PA11 */
-#define Y_ES1 16   /* PA13 */
-#define Y_ES2 23   /* PA14 */
+#define Y_ES1 23   /* PA14 */
+#define Y_ES2 24   /* PA15 */
 
 #define Z_ES0 29   /* PD6 */
 #define Z_ES1 12   /* PD8 */
@@ -84,18 +84,18 @@
 //
 // Steppers
 //
-#define X_STEP_PIN                           111  /* PB23 */ 
-#define X_DIR_PIN                            112   /* PB25 */
-#define X_ENABLE_PIN                         105 /* PB22 */
+#define X_STEP_PIN                           78   /* PB23 */  /*TEST?*/
+#define X_DIR_PIN                            2    /* PB25 */  /*TEST?*/
+#define X_ENABLE_PIN                         105  /* PB22 */
 #ifndef X_CS_PIN
-  #define X_CS_PIN                           113   /* PC25 */
+  #define X_CS_PIN                           53   /* PB14 */
 #endif
 
 #define Y_STEP_PIN                           27  /* PD2 */
-#define Y_DIR_PIN                            14  /* PD4 */
+#define Y_DIR_PIN                            26  /* PD1 */
 #define Y_ENABLE_PIN                         25  /* PD0 */
 #ifndef Y_CS_PIN
-  #define Y_CS_PIN                           17  /* PA12 */
+  #define Y_CS_PIN                           69  /* PA0 */
 #endif
 
 #define Z_STEP_PIN                           31  /* PA7 */
@@ -105,11 +105,11 @@
   #define Z_CS_PIN                           11  /* PD7 */
 #endif
 
-#define E0_STEP_PIN                          35  /* PC3 */
-#define E0_DIR_PIN                           35  /* PC3  */
-#define E0_ENABLE_PIN                        35  /* PC3 */
+#define E0_STEP_PIN                          110  /* PC0 */
+#define E0_DIR_PIN                           110  /* PC0  */
+#define E0_ENABLE_PIN                        110  /* PC0 */
 #ifndef E0_CS_PIN
-  #define E0_CS_PIN                          35  /* PC3 */
+  #define E0_CS_PIN                          110  /* PC0 */
 #endif
 
 //
@@ -128,12 +128,11 @@
   #endif
 #endif
 
-/*
 #ifndef FAN_PIN
-  #define FAN_PIN                              4  // D4 PC26 FET_PWM1
+  #define FAN_PIN                              5 /* PC25 */
 #endif
-#define FAN1_PIN                               5  // D5 PC25 FET_PWM2
-*/
+#define FAN_ON 4 /* PC26 */
+
 
 //
 // Misc. Functions
@@ -152,20 +151,27 @@
 #define LCD_SDSS       SDSS
                         
 
+/* LEDs on the board */
 #define LED_ESTOP_PIN   62 /* PB17 */
 #define LED_HBEAT_PIN   63 /* PB18 */
 #define LED_BUSY_PIN    64 /* PB19 */
-#define LED_STOP_PIN    65 /* PB20 */
-#define LED_FAULT_PIN   86 /* PB21 */
+#define LED_STOP_PIN    20 /* PB12 */
+#define LED_FAULT_PIN   21 /* PB13 */
 #define LED_CLKOK_PIN   69 /* PA4  */
 #define LED_I2COK_PIN   60 /* PA3  */
 #define LED_BOOTOK_PIN  58 /* PA6  */
 
 #define LED_PIN LED_HBEAT_PIN /* Default Heartbeat */
 
+/* LEDs on the front panel */
+#define LED_PANEL_JSEN   10  /* PC29 */
+#define LED_PANEL_MODE   72  /* PC30 */
+#define LED_PANEL_CLEAR  85  /* PB11 */
+#define LED_PANEL_HOME   22  /* PB26 */
+
 // I2C EEPROM with 4K of space
-#define I2C_EEPROM
-#define MARLIN_EEPROM_SIZE                0x1000
+//#define I2C_EEPROM
+//#define MARLIN_EEPROM_SIZE                0x1000
 
 //#define PIN_WIRE_SDA 70 /* PA17 */
 //#define PIN_WIRE_SCL 71 /* PA18 */
