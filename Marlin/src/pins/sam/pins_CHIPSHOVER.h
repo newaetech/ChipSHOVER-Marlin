@@ -121,17 +121,16 @@
     #define TMC_SW_MOSI                      104 /* PC20 */
   #endif
   #ifndef TMC_SW_MISO
-    #define TMC_SW_MISO                      110   /* PC21 */
+    #define TMC_SW_MISO                      9   /* PC21 */
   #endif
   #ifndef TMC_SW_SCK
-    #define TMC_SW_SCK                       109   /* PC22 */
+    #define TMC_SW_SCK                       8   /* PC22 */
   #endif
 #endif
 
-#ifndef FAN_PIN
-  #define FAN_PIN                              5 /* PC25 */
-#endif
-#define FAN_ON 4 /* PC26 */
+#define FAN_PIN                              5 /* PC25 */
+#define FAN_ON                               4 /* PC26 */
+
 
 
 //
