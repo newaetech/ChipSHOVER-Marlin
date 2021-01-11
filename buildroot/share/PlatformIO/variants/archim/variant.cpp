@@ -457,19 +457,9 @@ void init( void )
     g_APinDescription[PINS_USB].ulPin,
     g_APinDescription[PINS_USB].ulPinConfiguration);
 
-  // Initialize CAN pins
-  /*
-  PIO_Configure(
-    g_APinDescription[PINS_CAN0].pPort,
-    g_APinDescription[PINS_CAN0].ulPinType,
-    g_APinDescription[PINS_CAN0].ulPin,
-    g_APinDescription[PINS_CAN0].ulPinConfiguration);
-  PIO_Configure(
-    g_APinDescription[PINS_CAN1].pPort,
-    g_APinDescription[PINS_CAN1].ulPinType,
-    g_APinDescription[PINS_CAN1].ulPin,
-    g_APinDescription[PINS_CAN1].ulPinConfiguration);
-
+  // Currently - nothing on board uses any analog channels, pins are used as digital only.
+  // For now keep init here in case user ends up trying to use analog...
+  
   // Initialize Analog Controller
   pmc_enable_periph_clk(ID_ADC);
   adc_init(ADC, SystemCoreClock, ADC_FREQ_MAX, ADC_STARTUP_FAST);
@@ -480,7 +470,6 @@ void init( void )
 
   // Initialize analogOutput module
   analogOutputInit();
-  */
 }
 
 #ifdef __cplusplus

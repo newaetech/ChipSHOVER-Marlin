@@ -22,45 +22,26 @@
 #pragma once
 
 /**
- * ARCHIM2 pin assignment
+ * ChipShover pin assignment
  *
- * The Archim 2.0 board requires Arduino Archim addons installed.
- *
- * - Add the following URL to Arduino IDE's Additional Board Manager URLs:
- *   https://raw.githubusercontent.com/ultimachine/ArduinoAddons/master/package_ultimachine_index.json
- *
- * - In the Arduino IDE Board Manager search for Archim and install the package.
- *
- * - Change your target board to "Archim".
- *
- * Further information on the UltiMachine website...
- *   https://github.com/ultimachine/Archim/wiki
+ * The ChipShover builds only in PlatformIO currently, not in Arudino.
+ * 
  */
 
 #ifndef __SAM3X8E__
-  #error "Oops! Select 'Archim' in 'Tools > Board.'"
+  #error "Ensure building for ChipShover board"
 #elif DISABLED(TMC_USE_SW_SPI)
   #error "ChipShover requires Software SPI. Enable TMC_USE_SW_SPI in Configuration_adv.h."
 #endif
 
-#define BOARD_INFO_NAME "ChipShover 0.0"
-
-//
-// Items marked * have been altered from Archim v1.0
-//
-
-//
-// Servos
-//
-#define SERVO0_PIN                            20  // D20 PB12 (Header J20 20)
-#define SERVO1_PIN                            21  // D21 PB13 (Header J20 19)
+#define BOARD_INFO_NAME "ChipShover One"
 
 //
 // Limit Switches
 //
 
 #define X_ES0 6    /* PC24 */
-#define X_ES1 3    /* PC28 */ /*TEST*/
+#define X_ES1 3    /* PC28 */
 #define X_ES2 106  /* PC27 */
 
 #define Y_ES0 18   /* PA11 */
@@ -84,8 +65,8 @@
 //
 // Steppers
 //
-#define X_STEP_PIN                           78   /* PB23 */  /*TEST?*/
-#define X_DIR_PIN                            2    /* PB25 */  /*TEST?*/
+#define X_STEP_PIN                           78   /* PB23 */  
+#define X_DIR_PIN                            2    /* PB25 */
 #define X_ENABLE_PIN                         105  /* PB22 */
 #ifndef X_CS_PIN
   #define X_CS_PIN                           53   /* PB14 */
@@ -105,6 +86,9 @@
   #define Z_CS_PIN                           11  /* PD7 */
 #endif
 
+/* Board does't have E0 in real life - required for build to succeed.
+   PC0 is not used (erase jumper).
+ */
 #define E0_STEP_PIN                          110  /* PC0 */
 #define E0_DIR_PIN                           110  /* PC0  */
 #define E0_ENABLE_PIN                        110  /* PC0 */
@@ -175,16 +159,7 @@
 //#define PIN_WIRE_SDA 70 /* PA17 */
 //#define PIN_WIRE_SCL 71 /* PA18 */
 
-/*
-// Case Light
-
-#ifndef CASE_LIGHT_PIN
-  #define CASE_LIGHT_PIN          GPIO_PB1_J20_5
-#endif
-*/
-
 #define BOARD_INIT() 
-
 
 #define TEMP_0_PIN 0
 
