@@ -314,8 +314,6 @@ extern const PinDescription g_APinDescription[]=
   { PIOB, PIO_PB10B_A18,      ID_PIOB, PIO_PERIPH_B, PIO_DEFAULT, PIN_ATTR_DIGITAL,                  NO_ADC, NO_ADC, NOT_ON_PWM,  NOT_ON_TIMER }, // DIO PIN 107
   { PIOB, PIO_PB9,            ID_PIOB, PIO_PERIPH_B, PIO_DEFAULT, PIN_ATTR_DIGITAL,                  NO_ADC, NO_ADC, NOT_ON_PWM,  NOT_ON_TIMER }, // DIO PIN 108
   { PIOA, PIO_PA5,            ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT, PIN_ATTR_DIGITAL,                  NO_ADC, NO_ADC, NOT_ON_PWM,  NOT_ON_TIMER }, // DIO PIN 109
-  { PIOC, PIO_PC0,            ID_PIOC, PIO_OUTPUT_0, PIO_DEFAULT, PIN_ATTR_DIGITAL,                  NO_ADC, NO_ADC, NOT_ON_PWM,  NOT_ON_TIMER }, // DIO PIN 110
-
 
   // END
   { NULL, 0, 0, PIO_NOT_A_PIN, PIO_DEFAULT, 0, NO_ADC, NO_ADC, NOT_ON_PWM, NOT_ON_TIMER }
@@ -457,9 +455,18 @@ void init( void )
     g_APinDescription[PINS_USB].ulPin,
     g_APinDescription[PINS_USB].ulPinConfiguration);
 
-  // Currently - nothing on board uses any analog channels, pins are used as digital only.
-  // For now keep init here in case user ends up trying to use analog...
-  
+  // Initialize CAN pins
+  PIO_Configure(
+    g_APinDescription[PINS_CAN0].pPort,
+    g_APinDescription[PINS_CAN0].ulPinType,
+    g_APinDescription[PINS_CAN0].ulPin,
+    g_APinDescription[PINS_CAN0].ulPinConfiguration);
+  PIO_Configure(
+    g_APinDescription[PINS_CAN1].pPort,
+    g_APinDescription[PINS_CAN1].ulPinType,
+    g_APinDescription[PINS_CAN1].ulPin,
+    g_APinDescription[PINS_CAN1].ulPinConfiguration);
+
   // Initialize Analog Controller
   pmc_enable_periph_clk(ID_ADC);
   adc_init(ADC, SystemCoreClock, ADC_FREQ_MAX, ADC_STARTUP_FAST);
