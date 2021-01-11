@@ -443,6 +443,8 @@
   #include "sam/pins_PRINTRBOARD_G2.h"          // SAM3X8C                                env:DUE_USB
 #elif MB(CNCONTROLS_15D)
   #include "sam/pins_CNCONTROLS_15D.h"          // SAM3X8E                                env:DUE env:DUE_USB
+#elif MB(CHIPSHOVER)
+  #include "sam/pins_CHIPSHOVER.h"              // SAM3X8E                                evn:DUE_chipshover env:DUE_chipshover_debug
 
 //
 // STM32 ARM Cortex-M0
