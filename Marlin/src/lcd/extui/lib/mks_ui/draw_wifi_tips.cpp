@@ -26,7 +26,7 @@
 #include <lv_conf.h>
 #include "tft_lvgl_configuration.h"
 
-#if ENABLED(USE_WIFI_FUNCTION)
+#if ENABLED(MKS_WIFI_MODULE)
 
 #include "draw_ui.h"
 
@@ -39,14 +39,7 @@ tips_menu_def tips_menu;
 void lv_draw_wifi_tips(void) {
   static lv_obj_t *text_tips,*wifi_name;
 
-  if (disp_state_stack._disp_state[disp_state_stack._disp_index] != WIFI_TIPS_UI) {
-    disp_state_stack._disp_index++;
-    disp_state_stack._disp_state[disp_state_stack._disp_index] = WIFI_TIPS_UI;
-  }
-  disp_state = WIFI_TIPS_UI;
-
-  scr = lv_screen_create();
-  lv_refr_now(lv_refr_get_disp_refreshing());
+  scr = lv_screen_create(WIFI_TIPS_UI, "");
 
   wifi_name = lv_label_create(scr, (const char *)wifi_list.wifiName[wifi_list.nameIndex]);
   lv_obj_align(wifi_name, nullptr, LV_ALIGN_CENTER, 0, -20);
@@ -71,5 +64,5 @@ void lv_draw_wifi_tips(void) {
 
 void lv_clear_wifi_tips() { lv_obj_del(scr); }
 
-#endif // USE_WIFI_FUNCTION
+#endif // MKS_WIFI_MODULE
 #endif // HAS_TFT_LVGL_UI

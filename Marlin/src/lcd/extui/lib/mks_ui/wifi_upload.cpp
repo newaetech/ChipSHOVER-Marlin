@@ -21,7 +21,7 @@
  */
 #include "../../../../inc/MarlinConfigPre.h"
 
-#if HAS_TFT_LVGL_UI
+#if BOTH(HAS_TFT_LVGL_UI, MKS_WIFI_MODULE)
 
 #include "draw_ui.h"
 #include "wifi_module.h"
@@ -533,12 +533,8 @@ EspUploadResult flashFinish(signed char reboot) {
 
 // Compute the checksum of a block of data
 uint16_t checksum(const uint8_t *data, uint16_t dataLen, uint16_t cksum) {
-  if (data != nullptr) {
-    while (dataLen--) {
-      cksum ^= (uint16_t)*data++;
-    }
-  }
-  return(cksum);
+  if (data) while (dataLen--) cksum ^= (uint16_t)*data++;
+  return cksum;
 }
 
 EspUploadResult flashWriteBlock(uint16_t flashParmVal, uint16_t flashParmMask) {
@@ -826,4 +822,4 @@ int32_t wifi_upload(int type) {
   return esp_upload.uploadResult == success ? 0 : -1;
 }
 
-#endif  // HAS_TFT_LVGL_UI
+#endif // HAS_TFT_LVGL_UI && MKS_WIFI_MODULE

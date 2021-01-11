@@ -53,8 +53,6 @@ enum {
 static lv_obj_t *label_PowerOff;
 static lv_obj_t *buttonPowerOff;
 
-extern feedRate_t feedrate_mm_s;
-
 static void event_handler(lv_obj_t *obj, lv_event_t event) {
   if (event != LV_EVENT_RELEASED) return;
   switch (obj->mks_obj_id) {
@@ -129,17 +127,7 @@ void lv_draw_operation(void) {
            *buttonBabyStep = nullptr, *label_BabyStep = nullptr,
            *label_Filament = nullptr;
 
-  if (disp_state_stack._disp_state[disp_state_stack._disp_index] != OPERATE_UI) {
-    disp_state_stack._disp_index++;
-    disp_state_stack._disp_state[disp_state_stack._disp_index] = OPERATE_UI;
-  }
-  disp_state = OPERATE_UI;
-
-  scr = lv_screen_create();
-
-  (void)lv_label_create(scr, TITLE_XPOS, TITLE_YPOS, creat_title_text());
-
-  lv_refr_now(lv_refr_get_disp_refreshing());
+  scr = lv_screen_create(OPERATE_UI);
 
   // Create image buttons
   lv_obj_t *buttonPreHeat  = lv_imgbtn_create(scr, "F:/bmp_temp.bin", INTERVAL_V, titleHeight, event_handler, ID_O_PRE_HEAT);
@@ -190,10 +178,7 @@ void lv_draw_operation(void) {
   label_PowerOff = lv_label_create_empty(buttonPowerOff);
 
   if (uiCfg.print_state != WORKING) {
-    /*
-      label_Filament = lv_label_create_empty(buttonFilament);
-    } else {
-    */
+    //label_Filament = lv_label_create_empty(buttonFilament);
     labelExtrusion = lv_label_create_empty(buttonExtrusion);
     label_Move = lv_label_create_empty(buttonMove);
   }
@@ -220,11 +205,8 @@ void lv_draw_operation(void) {
     lv_obj_align(label_PowerOff, buttonPowerOff, LV_ALIGN_IN_BOTTOM_MID, 0, BUTTON_TEXT_Y_OFFSET);
 
     if (uiCfg.print_state != WORKING) {
-      /*
-        lv_label_set_text(label_Filament, operation_menu.filament);
-        lv_obj_align(label_Filament, buttonFilament, LV_ALIGN_IN_BOTTOM_MID,0, BUTTON_TEXT_Y_OFFSET);
-      } else {
-      */
+      //lv_label_set_text(label_Filament, operation_menu.filament);
+      //lv_obj_align(label_Filament, buttonFilament, LV_ALIGN_IN_BOTTOM_MID,0, BUTTON_TEXT_Y_OFFSET);
       lv_label_set_text(labelExtrusion, operation_menu.extr);
       lv_obj_align(labelExtrusion, buttonExtrusion, LV_ALIGN_IN_BOTTOM_MID, 0, BUTTON_TEXT_Y_OFFSET);
 

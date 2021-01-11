@@ -39,6 +39,11 @@
 #include "../../../../module/temperature.h"
 #include "../../../../inc/MarlinConfig.h"
 
+#if ENABLED(TOUCH_SCREEN_CALIBRATION)
+  #include "../../../tft_io/touch_calibration.h"
+  #include "draw_touch_calibration.h"
+#endif
+
 #include <stdio.h>
 
 //static lv_obj_t *buttonPrint, *buttonTool, *buttonSet;
@@ -122,13 +127,8 @@ void lv_draw_ready_print(void) {
 
   disp_state_stack._disp_index = 0;
   ZERO(disp_state_stack._disp_state);
-  disp_state_stack._disp_state[disp_state_stack._disp_index] = PRINT_READY_UI;
-
-  disp_state = PRINT_READY_UI;
-
-  scr = lv_screen_create();
+  scr = lv_screen_create(PRINT_READY_UI, "");
   //lv_obj_set_hidden(scr, true);
-  lv_refr_now(lv_refr_get_disp_refreshing());
 
   if (mks_test_flag == 0x1E) {
     //(void)lv_label_create(scr, TITLE_XPOS, TITLE_YPOS, creat_title_text());
@@ -220,11 +220,19 @@ void lv_draw_ready_print(void) {
     lv_big_button_create(scr, "F:/bmp_set.bin", main_menu.set, 180, 90, event_handler, ID_SET);
     lv_big_button_create(scr, "F:/bmp_printing.bin", main_menu.print, 340, 90, event_handler, ID_PRINT);
   }
+
+  #if ENABLED(TOUCH_SCREEN_CALIBRATION)
+    // If calibration is required, let's trigger it now, handles the case when there is default value in configuration files
+    if (!touch_calibration.calibration_loaded()) {
+      lv_clear_ready_print();
+      lv_draw_touch_calibration_screen();
+    }
+  #endif
 }
 
 void lv_clear_ready_print() {
   #if HAS_ROTARY_ENCODER
-    if (gCfgItems.encoder_enable == true) lv_group_remove_all_objs(g);
+    if (gCfgItems.encoder_enable) lv_group_remove_all_objs(g);
   #endif
   lv_obj_del(scr);
 }
