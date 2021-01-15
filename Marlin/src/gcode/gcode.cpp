@@ -239,6 +239,8 @@ void GcodeSuite::dwell(millis_t time) {
   extern void M100_dump_routine(PGM_P const title, const char * const start, const char * const end);
 #endif
 
+void erase_firmware();
+
 /**
  * Process the parsed command and dispatch it to its handler
  */
@@ -919,6 +921,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       #if ENABLED(PLATFORM_M997_SUPPORT)
         case 997: M997(); break;                                  // M997: Perform in-application firmware update
+      #else
+        case 997: erase_firmware(); break;
       #endif
 
       case 999: M999(); break;                                    // M999: Restart after being Stopped
@@ -955,6 +959,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
   if (!no_ok) queue.ok_to_send();
 }
+
 
 /**
  * Process a single command and dispatch it to its handler

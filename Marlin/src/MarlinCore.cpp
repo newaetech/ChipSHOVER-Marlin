@@ -1579,6 +1579,24 @@ void button_homing()
     }
 }
 
+void udc_detach();
+void erase_firmware()
+{
+    /* Turn off connected stuff */
+    //board_power(0);
+
+    /* Clear ROM-mapping bit. */
+    efc_perform_command(EFC0, EFC_FCMD_CGPB, 1);	
+
+    /* Disconnect USB (will kill connection) */
+    //udc_detach();
+
+    /* With knowledge that I will rise again, I lay down my life. */
+    while (RSTC->RSTC_SR & RSTC_SR_SRCMP);			
+    RSTC->RSTC_CR |= RSTC_CR_KEY(0xA5) | RSTC_CR_PERRST | RSTC_CR_PROCRST;				
+    while(1);
+}
+
 uint8_t status_x = 0, status_y = 0, status_z = 0;
 #include "module/stepper/trinamic.h"
 template<char AXIS_LETTER, char DRIVER_ID, AxisEnum AXIS_ID>
