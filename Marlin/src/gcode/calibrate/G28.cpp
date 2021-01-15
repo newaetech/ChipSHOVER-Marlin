@@ -186,6 +186,7 @@
   }
 
 #endif // IMPROVE_HOMING_RELIABILITY
+bool doneX, doneY, doneZ;
 
 /**
  * G28: Home all axes according to settings
@@ -207,7 +208,6 @@
  */
 extern uint8_t CS_STATUS;
 void GcodeSuite::G28() {
-    CS_STATUS = 0x01; //busy
   DEBUG_SECTION(log_G28, "G28", DEBUGGING(LEVELING));
   if (DEBUGGING(LEVELING)) log_machine_info();
 
@@ -321,7 +321,10 @@ void GcodeSuite::G28() {
                homeX = needX || parser.seen('X'), homeY = needY || parser.seen('Y'),
                home_all = homeX == homeY && homeX == homeZ, // All or None
                doX = home_all || homeX, doY = home_all || homeY, doZ = home_all || homeZ;
-
+    
+    if ((!needX || doX) && (!needY || doY) && (!axes_should_home(_BV(Z_AXIS)) || doZ)) {
+        CS_STATUS = 0x01; //busy
+    }
     #if ENABLED(HOME_Z_FIRST)
 
       if (doZ) homeaxis(Z_AXIS);
