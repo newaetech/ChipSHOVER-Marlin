@@ -2818,6 +2818,7 @@ void Temperature::tick() {
     const xyze_pos_t lops = current_position.asLogical();
     ui.update_buttons();
 
+
     if (!digitalRead(57)) {
         CS_STATUS = CS_STAT_ESTOP;
         handle_estop();
@@ -2853,19 +2854,21 @@ void Temperature::tick() {
             switch(CS_STATUS) {
                 case CS_STAT_RUNNING:
                     update_UI_status_msg("Idle");
+                    digitalWrite(72, 0);
                     digitalWrite(22, 0);
                     break;
                 case CS_STAT_BUSY:
                     update_UI_status_msg("Busy");
-                    digitalWrite(22, 0);
+                    digitalWrite(72, 0);
+                    digitalWrite(22, 1);
                     break;
                 case CS_STAT_UNHOMED:
                     update_UI_status_msg("Unhomed");
-                    digitalWrite(22, 1);
+                    digitalWrite(72, 1);
                     break;
                 case CS_STAT_ESTOP:
                     update_UI_status_msg("ESTOP\nRESTART REQUIRED");
-                    digitalWrite(22, 1);
+                    digitalWrite(72, 1);
                     break;
                 default:
                     update_UI_status_msg("Unknown Error!");

@@ -1426,6 +1426,7 @@ void setup() {
     SETUP_LOG("setup() completed.");
 
     pinMode(22, OUTPUT);
+    pinMode(72, OUTPUT);
 }
 
 
