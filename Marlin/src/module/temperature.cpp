@@ -2501,9 +2501,34 @@ public:
   #endif
 };
 
+
+bool released = false;
+
+#include "motion.h"
+void update_xyz(float x, float y, float z);
+void ui_error_update();
+void heartbeat_itr();
+void handle_pause();
+void update_UI_status_msg(char *msg);
+void check_LCD();
+
+extern bool UI_update;
+
+enum {
+    CS_STAT_RUNNING,
+    CS_STAT_BUSY,
+    CS_STAT_UNHOMED
+
+} CHIPSHOVER_STATUS;
+
+uint8_t CS_STATUS = CS_STAT_UNHOMED;
+uint8_t CS_STATUS_PREV = 255; //should be unknown one
+uint16_t HOME_BUTTON_COUNTER = 0;
+
+void button_homing();
 /**
  * Handle various ~1KHz tasks associated with temperature
- *  - Heater PWM (~1KHz with scaler)
+ *  - Heater PWM (~1KHz with scaler)/update
  *  - LCD Button polling (~500Hz)
  *  - Start / Read one ADC sensor
  *  - Advance Babysteps
@@ -2511,7 +2536,7 @@ public:
  *  - Planner clean buffer
  */
 void Temperature::tick() {
-
+  //update_xyz(current_position.x, current_position.y, current_position.z);
   static int8_t temp_count = -1;
   static ADCSensorState adc_sensor_state = StartupDelay;
   static uint8_t pwm_count = _BV(SOFT_PWM_SCALE);
@@ -2780,7 +2805,48 @@ void Temperature::tick() {
   // Update lcd buttons 488 times per second
   //
   static bool do_buttons;
-  if ((do_buttons ^= true)) ui.update_buttons();
+  if ((do_buttons ^= true))  {
+    cli();
+    //check_LCD();
+    heartbeat_itr();
+    const xyze_pos_t lops = current_position.asLogical();
+    update_xyz(lops.x, lops.y, lops.z);
+    ui_error_update();
+    ui.update_buttons();
+    if (!digitalRead(55)) {
+        //pause button
+        if (released) {
+            handle_pause();
+            CS_STATUS = 0x02;
+        }
+        released = false;
+        if (HOME_BUTTON_COUNTER++ >= 1464) { //should be ~3 seconds if this really is 488Hz
+            watchdog_refresh();
+            button_homing();
+        }
+    } else {
+        released = true;
+        HOME_BUTTON_COUNTER = 0;
+    }
+    if ((CS_STATUS != CS_STATUS_PREV) && UI_update) {
+        CS_STATUS_PREV = CS_STATUS;
+        switch(CS_STATUS) {
+            case CS_STAT_RUNNING:
+                update_UI_status_msg("Idle");
+                break;
+            case CS_STAT_BUSY:
+                update_UI_status_msg("Busy");
+                break;
+            case CS_STAT_UNHOMED:
+                update_UI_status_msg("Unhomed");
+                break;
+            default:
+                update_UI_status_msg("Unknown Error!");
+                break;
+        }
+    }
+    sei();
+  }
 
   /**
    * One sensor is sampled on every other call of the ISR.

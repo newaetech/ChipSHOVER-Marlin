@@ -205,7 +205,9 @@
  *  Y   Home to the Y endstop
  *  Z   Home to the Z endstop
  */
+extern uint8_t CS_STATUS;
 void GcodeSuite::G28() {
+    CS_STATUS = 0x01; //busy
   DEBUG_SECTION(log_G28, "G28", DEBUGGING(LEVELING));
   if (DEBUGGING(LEVELING)) log_machine_info();
 

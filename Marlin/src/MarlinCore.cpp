@@ -233,6 +233,70 @@
   #include "feature/password/password.h"
 #endif
 
+bool UI_update = false;
+/***************************************************
+  This is our GFX example for the Adafruit ILI9341 TFT FeatherWing
+  ----> http://www.adafruit.com/products/3315
+
+  Check out the links above for our tutorials and wiring diagrams
+
+  Adafruit invests time and resources providing this open source code,
+  please support Adafruit and open-source hardware by purchasing
+  products from Adafruit!
+
+  Written by Limor Fried/Ladyada for Adafruit Industries.
+  MIT license, all text above must be included in any redistribution
+ ****************************************************/
+
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ILI9341.h>
+
+#ifdef ESP8266
+   #define STMPE_CS 16
+   #define TFT_CS   0
+   #define TFT_DC   15
+   #define SD_CS    2
+#endif
+#ifdef ESP32
+   #define STMPE_CS 32
+   #define TFT_CS   15
+   #define TFT_DC   33
+   #define SD_CS    14
+#endif
+#ifdef TEENSYDUINO
+   #define TFT_DC   10
+   #define TFT_CS   4
+   #define STMPE_CS 3
+   #define SD_CS    8
+#endif
+#ifdef ARDUINO_STM32_FEATHER
+   #define TFT_DC   PB4
+   #define TFT_CS   PA15
+   #define STMPE_CS PC7
+   #define SD_CS    PC5
+#endif
+#ifdef ARDUINO_NRF52832_FEATHER /* BSP 0.6.5 and higher! */
+   #define TFT_DC   11
+   #define TFT_CS   31
+   #define STMPE_CS 30
+   #define SD_CS    27
+#endif
+#if defined(ARDUINO_MAX32620FTHR) || defined(ARDUINO_MAX32630FTHR)
+   #define TFT_DC   P5_4
+   #define TFT_CS   P5_3
+   #define STMPE_CS P3_3
+   #define SD_CS    P3_2
+#endif
+
+// Anything else!
+#if defined (__AVR_ATmega32U4__) || defined(ARDUINO_SAMD_FEATHER_M0) || defined (__AVR_ATmega328P__) || \
+    defined(ARDUINO_SAMD_ZERO) || defined(__SAMD51__) || defined(__SAM3X8E__) || defined(ARDUINO_NRF52840_FEATHER)
+   #define STMPE_CS 6
+   #define TFT_CS   9
+   #define TFT_DC   10
+   #define SD_CS    5
+#endif
 PGMSTR(NUL_STR, "");
 PGMSTR(M112_KILL_STR, "M112 Shutdown");
 PGMSTR(G28_STR, "G28");
@@ -966,6 +1030,14 @@ inline void tmc_standby_setup() {
  *    • status LEDs
  *    • Max7219
  */
+
+
+//Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
+//Adafruit_ILI9341 tft = Adafruit_ILI9341(10, 34, 4);
+//CS, DC, MOSI, CLK, RST, MISO
+//Adafruit_ILI9341 tft = Adafruit_ILI9341(77, 73, 75, 76, 87, 74);
+//CS, DC, RST
+Adafruit_ILI9341 tft = Adafruit_ILI9341(77, 73, 87);
 void setup() {
 
   tmc_standby_setup();  // TMC Low Power Standby pins must be set early or they're not usable
@@ -1339,7 +1411,30 @@ void setup() {
 
   marlin_state = MF_RUNNING;
 
-  SETUP_LOG("setup() completed.");
+    tft.begin();
+
+    //test LCD register reads
+    volatile uint8_t x = tft.readcommand8(ILI9341_RDMODE);
+    x = tft.readcommand8(ILI9341_RDMADCTL);
+    x = tft.readcommand8(ILI9341_RDPIXFMT);
+    x = tft.readcommand8(ILI9341_RDIMGFMT);
+    x = tft.readcommand8(ILI9341_RDSELFDIAG);
+
+    tft.fillScreen(ILI9341_BLACK);
+    tft.setRotation(1);
+    SETUP_LOG("setup() completed.");
+}
+
+//check if LCD dead, maybe not needed?
+void check_LCD()
+{
+    if (UI_update) {
+        if (tft.readcommand8(ILI9341_RDMADCTL) == 0xFF) {
+            //probably dead
+            tft.sendCommand(0x01);
+            tft = Adafruit_ILI9341(77, 73, 87);
+        }
+    }
 }
 
 /**
@@ -1355,7 +1450,219 @@ void setup() {
  *    card, host, or by direct injection. The queue will continue to fill
  *    as long as idle() or manage_inactivity() are being called.
  */
+#include "module/motion.h"
+  uint16_t cnt = 0;
+  uint8_t cnt2 = 0;
+  uint8_t is_idle = 1;
+  #define CHARWIDTH 11
+  #define CHARHEIGHT 16
+
+  void delete_status() {
+    tft.fillRect(CHARWIDTH*12, 0, CHARWIDTH*10, CHARHEIGHT, ILI9341_BLACK);
+  }
+
+  void set_cursor_at_status() {
+    tft.setCursor(CHARWIDTH*12, 0);
+  }
+
+  void set_status_busy() {
+    is_idle = 0;
+    tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(2);
+    delete_status();
+    set_cursor_at_status();
+    tft.print("Busy");
+  }
+
+  void set_status_idle() {
+    if (is_idle) {
+      return;
+    }
+    tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(2);
+    delete_status();
+    set_cursor_at_status();
+    tft.print("Idle");
+    is_idle = 1;
+  }
+
+
+
+double stored_x = -101, stored_y = -100 , stored_z = -100;
+void update_xyz(float x, float y, float z) {
+  if (UI_update) {
+    if (stored_x != x) {
+      tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+      tft.fillRect(0, CHARHEIGHT * 2, 10 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
+      tft.setCursor(0, CHARHEIGHT * 2);
+      tft.print("X: ");
+      tft.print(x, 3);
+      stored_x = x;
+    }
+    if (stored_y != y) {
+
+      tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+      tft.fillRect(0, CHARHEIGHT * 3, 10 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
+      tft.setCursor(0, CHARHEIGHT * 3);
+      tft.print("Y: ");
+      tft.print(y, 3);
+      stored_y = y;
+    }
+    if (stored_z != z) {
+      tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+      tft.fillRect(0, CHARHEIGHT * 4, 10 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
+      tft.setCursor(0, CHARHEIGHT * 4);
+      tft.print("Z: ");
+      tft.print(z, 3);
+      stored_z = z;
+    }
+  }
+}
+
+void lcd_print_bin(uint8_t n)
+{
+    for (uint8_t i = 0; i < 8; i++) {
+        tft.print((n >> i) & 1, 10);
+    }
+}
+const char *STEPPER_STATUSES[] = {"GOOD", "IDLE", "OPENLOADA", "OPENLOADB", "OVERTEMP WARN", "SHORTA", "SHORTB", "OVERTEMP SHUTDOWN", "MOTOR STALL"};
+
+uint8_t motor_err_index(uint8_t err) 
+{
+    for (uint8_t i = 0; i < 8; i++) {
+        if ((err >> (7 - i)) & 1)
+            return 8 - i;
+    }
+    return 0;
+}
+
+#include "src/feature/e_parser.h"
+uint8_t i = 0;
+#include "gcode/gcode.h"
+//extern uint16_t cleaning_buffer_counter;
+void handle_pause()
+{
+    if (UI_update) {
+        //cleaning_buffer_counter = 0;
+        //quickstop_stepper();
+        EmergencyParser::State st = EmergencyParser::EP_M410;
+        emergency_parser.update(st, '\n');
+    }
+}
+
+void update_UI_status_msg(char *msg)
+{
+    if (UI_update) {
+        tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(2);
+        tft.fillRect(0, CHARHEIGHT * 0, 50 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
+        tft.setCursor(0, CHARHEIGHT * 0);
+        tft.print("ChipSHOVER: ");
+        tft.print(msg);
+    }
+}
+
+extern GcodeSuite gcode;
+
+bool REQ_BUTTON_HOME = false;
+void button_homing()
+{
+    if (UI_update) {
+        //watchdog (I think?) unhappy with enqueue here
+        //queue.enqueue_one("G28 XZ\n"); //just XZ since Y driver is buggy
+        REQ_BUTTON_HOME = true;
+    }
+}
+
+uint8_t status_x = 0, status_y = 0, status_z = 0;
+#include "module/stepper/trinamic.h"
+template<char AXIS_LETTER, char DRIVER_ID, AxisEnum AXIS_ID>
+uint8_t get_stepper_status(TMCMarlin<TMC2660Stepper, AXIS_LETTER, DRIVER_ID, AXIS_ID> &st);
+void ui_error_update()
+{
+    // volatile uint32_t x = stepperX.DRVCONF();
+    // volatile auto y = stepperX.isEnabled();
+    // volatile auto errcnt = stepperX.error_count;
+    // volatile auto current = stepperX.rms_current();
+    // volatile auto status = stepperX.DRVSTATUS();
+    // volatile auto wtf1 = stepperX.stst();
+    if (UI_update) {
+        uint8_t status = get_stepper_status(stepperX);
+        if (status_x != status) {
+            tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+            tft.fillRect(0, CHARHEIGHT * 5, 40 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
+            tft.setCursor(0, CHARHEIGHT * 5);
+            tft.print("Status X: ");
+            //tft.print(status, 2);
+            //lcd_print_bin(status);
+            tft.print(STEPPER_STATUSES[motor_err_index(status)]);
+            status_x = status;
+        }
+
+        status = get_stepper_status(stepperY);
+        if (status_y != status) {
+            tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+            tft.fillRect(0, CHARHEIGHT * 6, 40 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
+            tft.setCursor(0, CHARHEIGHT * 6);
+            tft.print("Status Y: ");
+            //lcd_print_bin(status);
+            tft.print(STEPPER_STATUSES[motor_err_index(status)]);
+            status_y = status;
+        }
+
+        status = get_stepper_status(stepperZ);
+        if (status_z != status) {
+            tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+            tft.fillRect(0, CHARHEIGHT * 7, 40 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
+            tft.setCursor(0, CHARHEIGHT * 7);
+            tft.print("Status Z: ");
+            //lcd_print_bin(status);
+            tft.print(STEPPER_STATUSES[motor_err_index(status)]);
+            status_z = status;
+        }
+    }
+}
+
+void heartbeat_itr()
+{
+    if (UI_update) {
+        if (cnt++ == 100) {
+        cnt = 0;
+        tft.setTextColor(ILI9341_BLACK);  tft.setTextSize(2);
+        tft.fillRect(10*18, 14+3, 10*4, 14+1, ILI9341_BLACK);
+        tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+        tft.setCursor(10*18, 14+3);
+        tft.print(cnt2++, 10);
+        }
+    }
+}
+
+template<char AXIS_LETTER, char DRIVER_ID, AxisEnum AXIS_ID>
+uint8_t get_stepper_status(TMCMarlin<TMC2660Stepper, AXIS_LETTER, DRIVER_ID, AXIS_ID> &st) 
+{
+    //0 == no error, 1 == error
+    // uint8_t rtn = st.stst(); //stst
+    // rtn |= st.olb() << 1; //open load 
+    // rtn |= st.ola() << 2; //open load
+    // rtn |= st.s2gb() << 3; //short detection
+    // rtn |= st.s2ga() << 4; //short detection
+    // rtn |= st.ot() << 6; //overtemp shutdown
+    // rtn |= st.sg() << 7; //motor stall
+    // return rtn;
+
+    //reorder above for error priority
+    uint8_t rtn = st.stst(); //stst
+    rtn |= st.olb() << 1; //open load 
+    rtn |= st.ola() << 2; //open load
+    rtn |= st.otpw() << 3; //temp warn
+    rtn |= st.s2gb() << 4; //short detection
+    rtn |= st.s2ga() << 5; //short detection
+    rtn |= st.ot() << 6; //overtemp shutdown
+    rtn |= st.sg() << 7; //motor stall
+    return rtn;
+}
+extern uint8_t CS_STATUS;
+
 void loop() {
+    //digitalWrite(87, 0);
+  
   do {
     idle();
 
@@ -1364,11 +1671,19 @@ void loop() {
       if (marlin_state == MF_SD_COMPLETE) finishSDPrinting();
     #endif
 
-    queue.advance();
+  //update_xyz(current_position.x, current_position.y, current_position.z);
 
+    if (REQ_BUTTON_HOME) {
+        queue.enqueue_one_now("G28 XZ\n");
+        REQ_BUTTON_HOME = false;
+    }
+    queue.advance();
     endstops.event_handler();
 
+
+    UI_update = true;
     TERN_(HAS_TFT_LVGL_UI, printer_state_polling());
 
+    //digitalWrite(87, 1);
   } while (ENABLED(__AVR__)); // Loop forever on slower (AVR) boards
 }

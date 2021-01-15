@@ -624,6 +624,16 @@ void GCodeQueue::get_available_commands() {
   TERN_(SDSUPPORT, get_sdcard_commands());
 }
 
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ILI9341.h>
+
+// void delete_status(void);
+// void set_cursor_at_status(void);
+// extern Adafruit_ILI9341 tft;
+extern uint8_t CS_STATUS;
+void set_status_idle(void);
+void set_status_busy(void);
 /**
  * Get the next command in the queue, optionally log it to SD, then dispatch it
  */
@@ -633,7 +643,11 @@ void GCodeQueue::advance() {
   if (process_injected_command_P() || process_injected_command()) return;
 
   // Return if the G-code buffer is empty
-  if (!length) return;
+    if (!length) {
+        if (CS_STATUS != 0x02)
+            CS_STATUS = 0x00;
+        return;
+    }
 
   #if ENABLED(SDSUPPORT)
 
@@ -669,6 +683,8 @@ void GCodeQueue::advance() {
 
   #else
 
+    if (CS_STATUS != 0x02) //keep status as paused due to possible misalignment after pause
+        CS_STATUS = 0x01; //busy
     gcode.process_next_command();
 
   #endif // SDSUPPORT

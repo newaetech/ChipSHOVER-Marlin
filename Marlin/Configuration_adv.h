@@ -1137,7 +1137,9 @@
     #endif
   #endif
 
-#endif // HAS_LCD_MENU
+#endif // HAS_LCD_ME
+//#define HAS_DISPLAY 1
+
 
 #if HAS_DISPLAY
   // The timeout (in ms) to return to the status screen from sub-menus
@@ -2008,7 +2010,7 @@
  * Currently handles M108, M112, M410, M876
  * NOTE: Not yet implemented for all platforms.
  */
-//#define EMERGENCY_PARSER
+#define EMERGENCY_PARSER
 
 // Bad Serial-connections can miss a received command by sending an 'ok'
 // Therefore some clients abort after 30 seconds in a timeout.
@@ -2937,9 +2939,9 @@
  */
 
 //#define EXPERIMENTAL_I2CBUS
-#if ENABLED(EXPERIMENTAL_I2CBUS)
-  #define I2C_SLAVE_ADDRESS  0  // Set a value from 8 to 127 to act as a slave
-#endif
+//  #if ENABLED(EXPERIMENTAL_I2CBUS)
+//    #define I2C_SLAVE_ADDRESS  0  // Set a value from 8 to 127 to act as a slave
+//  #endif
 
 // @section extras
 
