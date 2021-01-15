@@ -2511,6 +2511,7 @@ void heartbeat_itr();
 void handle_pause();
 void update_UI_status_msg(char *msg);
 void check_LCD();
+void handle_estop();
 
 extern bool UI_update;
 
@@ -2808,7 +2809,7 @@ void Temperature::tick() {
   if ((do_buttons ^= true))  {
     cli();
     //check_LCD();
-    heartbeat_itr();
+    //heartbeat_itr();
     const xyze_pos_t lops = current_position.asLogical();
     update_xyz(lops.x, lops.y, lops.z);
     ui_error_update();
@@ -2820,9 +2821,9 @@ void Temperature::tick() {
             CS_STATUS = 0x02;
         }
         released = false;
-        if (HOME_BUTTON_COUNTER++ >= 1464) { //should be ~3 seconds if this really is 488Hz
-            watchdog_refresh();
+        if ((HOME_BUTTON_COUNTER++ >= 1464)) { //should be ~3 seconds if this really is 488Hz
             button_homing();
+            HOME_BUTTON_COUNTER = 0;
         }
     } else {
         released = true;

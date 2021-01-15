@@ -1537,7 +1537,15 @@ uint8_t motor_err_index(uint8_t err)
 #include "src/feature/e_parser.h"
 uint8_t i = 0;
 #include "gcode/gcode.h"
-//extern uint16_t cleaning_buffer_counter;
+
+void handle_estop()
+{
+    if (UI_update) {
+        EmergencyParser::State st = EmergencyParser::EP_M112;
+        emergency_parser.update(st, '\n');
+    }
+}
+
 void handle_pause()
 {
     if (UI_update) {
@@ -1674,7 +1682,7 @@ void loop() {
   //update_xyz(current_position.x, current_position.y, current_position.z);
 
     if (REQ_BUTTON_HOME) {
-        queue.enqueue_one_now("G28 XZ\n");
+        queue.enqueue_one_now("G28 XYZ");
         REQ_BUTTON_HOME = false;
     }
     queue.advance();
