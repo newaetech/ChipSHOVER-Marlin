@@ -2512,6 +2512,8 @@ void handle_pause();
 void update_UI_status_msg(const char *msg);
 void check_LCD();
 void handle_estop();
+void LCD_update_js();
+void handle_js();
 
 extern bool UI_update;
 
@@ -2526,6 +2528,7 @@ enum {
 uint8_t CS_STATUS = CS_STAT_UNHOMED;
 uint8_t CS_STATUS_PREV = 255; //should be unknown one
 uint16_t HOME_BUTTON_COUNTER = 0;
+uint8_t LCD_update_div = 0;
 
 void button_homing();
 /**
@@ -2811,9 +2814,8 @@ void Temperature::tick() {
     cli();
     //check_LCD();
     //heartbeat_itr();
+    handle_js();
     const xyze_pos_t lops = current_position.asLogical();
-    update_xyz(lops.x, lops.y, lops.z);
-    ui_error_update();
     ui.update_buttons();
 
     if (!digitalRead(57)) {
@@ -2824,10 +2826,14 @@ void Temperature::tick() {
         //pause button
         if (released) {
             handle_pause();
-            CS_STATUS = 0x02;
+            if (CS_STATUS != CS_STAT_ESTOP)
+                CS_STATUS = CS_STAT_UNHOMED;
         }
         released = false;
         if ((HOME_BUTTON_COUNTER++ >= 1464)) { //should be ~3 seconds if this really is 488Hz
+            if (CS_STATUS == CS_STAT_ESTOP) {
+
+            }
             button_homing();
             HOME_BUTTON_COUNTER = 0;
         }
@@ -2835,24 +2841,36 @@ void Temperature::tick() {
         released = true;
         HOME_BUTTON_COUNTER = 0;
     }
-    if ((CS_STATUS != CS_STATUS_PREV) && UI_update) {
-        CS_STATUS_PREV = CS_STATUS;
-        switch(CS_STATUS) {
-            case CS_STAT_RUNNING:
-                update_UI_status_msg("Idle");
-                break;
-            case CS_STAT_BUSY:
-                update_UI_status_msg("Busy");
-                break;
-            case CS_STAT_UNHOMED:
-                update_UI_status_msg("Unhomed");
-                break;
-            case CS_STAT_ESTOP:
-                update_UI_status_msg("ESTOP:\nReset Required");
-                break;
-            default:
-                update_UI_status_msg("Unknown Error!");
-                break;
+
+    LCD_update_js();
+
+    if (LCD_update_div++ > 5) {
+        LCD_update_div = 0;
+        update_xyz(lops.x, lops.y, lops.z);
+        ui_error_update();
+        if ((CS_STATUS != CS_STATUS_PREV) && UI_update) {
+            CS_STATUS_PREV = CS_STATUS;
+            switch(CS_STATUS) {
+                case CS_STAT_RUNNING:
+                    update_UI_status_msg("Idle");
+                    digitalWrite(22, 0);
+                    break;
+                case CS_STAT_BUSY:
+                    update_UI_status_msg("Busy");
+                    digitalWrite(22, 0);
+                    break;
+                case CS_STAT_UNHOMED:
+                    update_UI_status_msg("Unhomed");
+                    digitalWrite(22, 1);
+                    break;
+                case CS_STAT_ESTOP:
+                    update_UI_status_msg("ESTOP\nRESTART REQUIRED");
+                    digitalWrite(22, 1);
+                    break;
+                default:
+                    update_UI_status_msg("Unknown Error!");
+                    break;
+            }
         }
     }
     sei();

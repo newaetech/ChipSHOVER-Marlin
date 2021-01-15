@@ -644,7 +644,7 @@ void GCodeQueue::advance() {
 
   // Return if the G-code buffer is empty
     if (!length) {
-        if (CS_STATUS != 0x02)
+        if ((CS_STATUS != 0x02) && (CS_STATUS != 0x03)) //keep status as paused due to possible misalignment after pause
             CS_STATUS = 0x00;
         return;
     }
@@ -683,7 +683,7 @@ void GCodeQueue::advance() {
 
   #else
 
-    if (CS_STATUS != 0x02) //keep status as paused due to possible misalignment after pause
+    if ((CS_STATUS != 0x02) && (CS_STATUS != 0x03)) //keep status as paused due to possible misalignment after pause
         CS_STATUS = 0x01; //busy
     gcode.process_next_command();
 

@@ -37,6 +37,9 @@ void stop();
 void idle(TERN_(ADVANCED_PAUSE_FEATURE, bool no_stepper_sleep=false));
 inline void idle_no_sleep() { idle(TERN_(ADVANCED_PAUSE_FEATURE, true)); }
 
+// #define USE_BEEPER 1
+// #define DIOBEEPER_PIN_WPORT 
+
 #if ENABLED(EXPERIMENTAL_I2CBUS)
   #include "feature/twibus.h"
   extern TWIBus i2c;

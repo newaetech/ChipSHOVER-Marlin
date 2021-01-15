@@ -33,6 +33,7 @@
 #if ENABLED(MARLIN_DEV_MODE)
   #warning "WARNING! Disable MARLIN_DEV_MODE for the final build!"
 #endif
+#define USE_BEEPER 1
 
 #include "HAL/shared/Delay.h"
 #include "HAL/shared/esp_wifi.h"
@@ -1423,7 +1424,10 @@ void setup() {
     tft.fillScreen(ILI9341_BLACK);
     tft.setRotation(1);
     SETUP_LOG("setup() completed.");
+
+    pinMode(22, OUTPUT);
 }
+
 
 //check if LCD dead, maybe not needed?
 void check_LCD()
@@ -1456,6 +1460,14 @@ void check_LCD()
   uint8_t is_idle = 1;
   #define CHARWIDTH 11
   #define CHARHEIGHT 16
+
+extern uint8_t CS_STATUS;
+void LCD_clear_line(uint8_t line, uint16_t colour=ILI9341_WHITE)
+{
+    tft.fillRect(CHARWIDTH*0, CHARHEIGHT*line, CHARWIDTH*50, CHARHEIGHT, ILI9341_BLACK);
+    tft.setTextColor(colour); tft.setTextSize(2);
+    tft.setCursor(0, CHARHEIGHT*line);
+}
 
   void delete_status() {
     tft.fillRect(CHARWIDTH*12, 0, CHARWIDTH*10, CHARHEIGHT, ILI9341_BLACK);
@@ -1490,26 +1502,20 @@ double stored_x = -101, stored_y = -100 , stored_z = -100;
 void update_xyz(float x, float y, float z) {
   if (UI_update) {
     if (stored_x != x) {
-      tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
-      tft.fillRect(0, CHARHEIGHT * 2, 10 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
-      tft.setCursor(0, CHARHEIGHT * 2);
+      LCD_clear_line(2, ILI9341_YELLOW);
       tft.print("X: ");
       tft.print(x, 3);
       stored_x = x;
     }
     if (stored_y != y) {
 
-      tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
-      tft.fillRect(0, CHARHEIGHT * 3, 10 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
-      tft.setCursor(0, CHARHEIGHT * 3);
+      LCD_clear_line(3, ILI9341_YELLOW);
       tft.print("Y: ");
       tft.print(y, 3);
       stored_y = y;
     }
     if (stored_z != z) {
-      tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
-      tft.fillRect(0, CHARHEIGHT * 4, 10 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
-      tft.setCursor(0, CHARHEIGHT * 4);
+      LCD_clear_line(4, ILI9341_YELLOW);
       tft.print("Z: ");
       tft.print(z, 3);
       stored_z = z;
@@ -1541,6 +1547,7 @@ uint8_t i = 0;
 void handle_estop()
 {
     if (UI_update) {
+        //EmergencyParser::State st = EmergencyParser::EP_M410;
         EmergencyParser::State st = EmergencyParser::EP_M112;
         emergency_parser.update(st, '\n');
     }
@@ -1559,22 +1566,141 @@ void handle_pause()
 void update_UI_status_msg(const char *msg)
 {
     if (UI_update) {
-        tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(2);
-        tft.fillRect(0, CHARHEIGHT * 0, 50 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
-        tft.setCursor(0, CHARHEIGHT * 0);
+        LCD_clear_line(0);
         tft.print("ChipSHOVER: ");
         tft.print(msg);
+    }
+}
+
+struct encoder_value {
+    bool A, B;
+};
+
+encoder_value ENCODER_SEQUENCE[] = {{.A = 0, .B = 0}, {.A = 1, .B = 0}, {.A = 1, .B = 1}, {.A = 0, .B = 1}};
+
+int get_encoder_state(encoder_value value, int n)
+{
+    if (n > 3)
+        return -1;
+    return (value.A == ENCODER_SEQUENCE[n].A) && (value.B == ENCODER_SEQUENCE[n].B);
+}
+
+int get_encoder_direction(encoder_value o, encoder_value n)
+{
+    if ((get_encoder_state(o, 3)) && get_encoder_state(n, 0)){
+        //special case - wrap
+        return 1;
+    }
+
+    if ((get_encoder_state(o, 0)) && (get_encoder_state(n, 3))) {
+        //special case - wrap
+        return -1;
+    }
+    int st_o = 0, st_n = 0;
+    for (; st_o < 4; st_o++) {
+        if (get_encoder_state(o, st_o))
+            break;
+    }
+    for (; st_n < 4; st_n++) {
+        if (get_encoder_state(n, st_n))
+            break;
+    }
+
+    if (st_n > st_o) return 1;
+    else if (st_n < st_o) return -1;
+    else return 0;
+
+}
+
+
+
+bool JS_MOVE_LEFT=false, JS_MOVE_RIGHT=false, JS_MOVE_UP=false, JS_MOVE_DOWN = false;
+void handle_js()
+{
+    if (UI_update) {
+        JS_MOVE_LEFT = digitalRead(37); //Left
+        JS_MOVE_RIGHT = digitalRead(38); //Right
+        JS_MOVE_DOWN = digitalRead(39); //Down
+        JS_MOVE_UP = digitalRead(40); //Up
+    }
+}
+
+bool XH_last, XL_last, YH_last, YL_last;
+bool SW_last = 0, A_last = 0, B_last = 0;
+encoder_value enc_last = {.A = 0, .B = 0};
+void LCD_update_js()
+{
+    if (UI_update) {
+
+        bool XH, XL, YH, YL;
+        bool SW, A, B;
+        XH = digitalRead(37); //Left
+        XL = digitalRead(38); //Right
+        YH = digitalRead(39); //Down
+        YL = digitalRead(40); //Up
+        SW = !digitalRead(56);
+        A = digitalRead(42);
+        B = digitalRead(43);
+        if ((XH != XH_last) || (XL != XL_last)) {
+
+            LCD_clear_line(8);
+            if (XH) {
+                tft.print("XH ");
+            }
+            if (XL) {
+                tft.print("XL ");
+            }
+            XH_last = XH; XL_last = XL;
+        }
+
+        if ((YH != YH_last) || (YL != YL_last)) {
+
+            LCD_clear_line(9);
+            if (YH) {
+                tft.print("YH ");
+            }
+            if (YL) {
+                tft.print("YL ");
+            }
+            YH_last = YH; YL_last = YL;
+        }
+
+        if ((A != A_last) || (B != B_last) || (SW != SW_last)) {
+            LCD_clear_line(10);
+            encoder_value enc_val = {.A = A, .B = B};
+            int rot = get_encoder_direction(enc_last, enc_val);
+            if (rot == 1) {
+                tft.print("Right ");
+            } else if (rot == -1) {
+                tft.print("Left ");
+            }
+            enc_last = enc_val;
+            // if (A) {
+            //     tft.print("A ");
+            // }
+            // if (B) {
+            //     tft.print("B ");
+            // }
+
+            if (SW) {
+                tft.print("SW ");
+            }
+            A_last = A; B_last = B; SW_last = SW;
+        }
     }
 }
 
 extern GcodeSuite gcode;
 
 bool REQ_BUTTON_HOME = false;
+bool REQ_STEPPER_INIT = false;
 void button_homing()
 {
     if (UI_update) {
         //watchdog (I think?) unhappy with enqueue here
         //queue.enqueue_one("G28 XZ\n"); //just XZ since Y driver is buggy
+        if (CS_STATUS == 0x03) //estop
+            REQ_STEPPER_INIT = true;
         REQ_BUTTON_HOME = true;
     }
 }
@@ -1684,7 +1810,6 @@ uint8_t get_stepper_status(TMCMarlin<TMC2660Stepper, AXIS_LETTER, DRIVER_ID, AXI
     rtn |= st.sg() << 7; //motor stall
     return rtn;
 }
-extern uint8_t CS_STATUS;
 
 void loop() {
     //digitalWrite(87, 0);
@@ -1696,8 +1821,42 @@ void loop() {
       if (card.flag.abort_sd_printing) abortSDPrinting();
       if (marlin_state == MF_SD_COMPLETE) finishSDPrinting();
     #endif
-
   //update_xyz(current_position.x, current_position.y, current_position.z);
+    char cmdbuf[20];
+
+    if (JS_MOVE_UP) {
+        snprintf(cmdbuf, 19, "G0 Y%f", current_position.y+1);
+        queue.enqueue_one_now(cmdbuf);
+        queue.enqueue_one_now("M400");
+        JS_MOVE_UP=false;
+    } 
+
+    if (JS_MOVE_DOWN) {
+        snprintf(cmdbuf, 19, "G0 Y%f", current_position.y-1);
+        queue.enqueue_one_now(cmdbuf);
+        queue.enqueue_one_now("M400");
+        JS_MOVE_DOWN=false;
+    } 
+
+    if (JS_MOVE_RIGHT) {
+        snprintf(cmdbuf, 19, "G0 X%f", current_position.x+1);
+        queue.enqueue_one_now(cmdbuf);
+        queue.enqueue_one_now("M400");
+        JS_MOVE_RIGHT=false;
+    } 
+
+    if (JS_MOVE_LEFT) {
+        snprintf(cmdbuf, 19, "G0 X%f", current_position.x-1);
+        queue.enqueue_one_now(cmdbuf);
+        queue.enqueue_one_now("M400");
+        JS_MOVE_LEFT=false;
+    } 
+  //update_xyz(current_position.x, current_position.y, current_position.z);
+    if (REQ_STEPPER_INIT) {
+        REQ_STEPPER_INIT = false;
+        stepper.init();          // Init stepper. This enables interrupts!
+
+    }
 
     if (REQ_BUTTON_HOME) {
         queue.enqueue_one_now("G28 XYZ");
