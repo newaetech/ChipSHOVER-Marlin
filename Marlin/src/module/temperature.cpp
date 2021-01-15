@@ -2509,7 +2509,7 @@ void update_xyz(float x, float y, float z);
 void ui_error_update();
 void heartbeat_itr();
 void handle_pause();
-void update_UI_status_msg(char *msg);
+void update_UI_status_msg(const char *msg);
 void check_LCD();
 void handle_estop();
 
@@ -2518,7 +2518,8 @@ extern bool UI_update;
 enum {
     CS_STAT_RUNNING,
     CS_STAT_BUSY,
-    CS_STAT_UNHOMED
+    CS_STAT_UNHOMED,
+    CS_STAT_ESTOP
 
 } CHIPSHOVER_STATUS;
 
@@ -2814,6 +2815,11 @@ void Temperature::tick() {
     update_xyz(lops.x, lops.y, lops.z);
     ui_error_update();
     ui.update_buttons();
+
+    if (!digitalRead(57)) {
+        CS_STATUS = CS_STAT_ESTOP;
+        handle_estop();
+    }
     if (!digitalRead(55)) {
         //pause button
         if (released) {
@@ -2840,6 +2846,9 @@ void Temperature::tick() {
                 break;
             case CS_STAT_UNHOMED:
                 update_UI_status_msg("Unhomed");
+                break;
+            case CS_STAT_ESTOP:
+                update_UI_status_msg("ESTOP:\nReset Required");
                 break;
             default:
                 update_UI_status_msg("Unknown Error!");

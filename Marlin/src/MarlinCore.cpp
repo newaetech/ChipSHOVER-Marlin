@@ -1556,7 +1556,7 @@ void handle_pause()
     }
 }
 
-void update_UI_status_msg(char *msg)
+void update_UI_status_msg(const char *msg)
 {
     if (UI_update) {
         tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(2);
