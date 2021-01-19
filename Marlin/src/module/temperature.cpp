@@ -30,6 +30,8 @@
 #include "temperature.h"
 #include "endstops.h"
 
+#include "../ChipShover.h"
+
 #include "../MarlinCore.h"
 #include "planner.h"
 #include "../HAL/shared/Delay.h"
@@ -2502,38 +2504,6 @@ public:
 };
 
 
-bool released = false;
-
-#include "motion.h"
-void update_xyz(float x, float y, float z);
-void ui_error_update();
-void heartbeat_itr();
-void handle_pause();
-void update_UI_status_msg(const char *msg, bool clear=true);
-void check_LCD();
-void handle_estop();
-void LCD_update_js();
-void handle_js();
-void print_build_info();
-void print_steps_mm();
-extern uint32_t usb_conn_active;
-
-extern bool UI_update;
-
-enum {
-    CS_STAT_RUNNING = 0,
-    CS_STAT_BUSY = 1,
-    CS_STAT_UNHOMED = 2,
-    CS_STAT_ESTOP = 4
-
-} CHIPSHOVER_STATUS;
-
-uint8_t CS_STATUS = CS_STAT_UNHOMED;
-uint8_t CS_STATUS_PREV = 255; //should be unknown one
-uint16_t HOME_BUTTON_COUNTER = 0;
-uint8_t LCD_update_div = 0;
-
-void button_homing();
 /**
  * Handle various ~1KHz tasks associated with temperature
  *  - Heater PWM (~1KHz with scaler)/update
@@ -2814,79 +2784,9 @@ void Temperature::tick() {
   //
   static bool do_buttons;
   if ((do_buttons ^= true))  {
-    cli();
-    //check_LCD();
-    //heartbeat_itr();
-    handle_js();
-    const xyze_pos_t lops = current_position.asLogical();
     ui.update_buttons();
+    chipshover_tick();
 
-
-    if (!digitalRead(57)) {
-        CS_STATUS |= CS_STAT_ESTOP;
-        handle_estop();
-    }
-    if (!digitalRead(55)) {
-        //pause button
-        if (released) {
-            handle_pause();
-            if (!(CS_STATUS & CS_STAT_ESTOP))
-                CS_STATUS |= CS_STAT_UNHOMED;
-        }
-        released = false;
-        if ((HOME_BUTTON_COUNTER++ >= 1464)) { //should be ~3 seconds if this really is 488Hz
-            if (CS_STATUS & CS_STAT_ESTOP) {
-
-            }
-            button_homing();
-            HOME_BUTTON_COUNTER = 0;
-        }
-    } else {
-        released = true;
-        HOME_BUTTON_COUNTER = 0;
-    }
-    //LCD_update_js();
-
-
-    if (LCD_update_div++ > 5) {
-        
-        LCD_update_div = 0;
-        update_xyz(lops.x, lops.y, lops.z);
-        print_build_info();
-        print_steps_mm();
-        ui_error_update();
-        if (usb_conn_active > 0) {
-            digitalWrite(85, 1);
-            usb_conn_active--;
-        } else {
-            digitalWrite(85, 0);
-        }
-        if ((CS_STATUS != CS_STATUS_PREV) && UI_update) {
-            update_UI_status_msg("ChipSHOVER: ", true);
-            CS_STATUS_PREV = CS_STATUS;
-            if (CS_STATUS & CS_STAT_BUSY) {
-                update_UI_status_msg("Busy ", false);
-                digitalWrite(22, 1);
-            } else {
-                update_UI_status_msg("Idle ", false);
-                digitalWrite(22, 0);
-            }
-
-            if (CS_STATUS & CS_STAT_UNHOMED) {
-                update_UI_status_msg("Unhomed", false);
-                digitalWrite(72, 1);
-            } else {
-
-                digitalWrite(72, 0);
-            }
-
-            if (CS_STATUS & CS_STAT_ESTOP) {
-                update_UI_status_msg("ChipSHOVER: ESTOP");
-            }
-
-        }
-    }
-    sei();
   }
 
   /**
