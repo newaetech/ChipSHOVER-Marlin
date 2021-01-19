@@ -1619,6 +1619,9 @@ int get_encoder_direction(encoder_value o, encoder_value n)
 
 
 bool JS_MOVE_LEFT=false, JS_MOVE_RIGHT=false, JS_MOVE_UP=false, JS_MOVE_DOWN = false;
+bool JS_MOVE_ZP = false;
+bool JS_MOVE_ZM = false;
+encoder_value enc_last = {.A = 0, .B = 0};
 void handle_js()
 {
     if (UI_update) {
@@ -1626,12 +1629,27 @@ void handle_js()
         JS_MOVE_RIGHT = digitalRead(38); //Right
         JS_MOVE_DOWN = digitalRead(39); //Down
         JS_MOVE_UP = digitalRead(40); //Up
+
+        bool A = digitalRead(42);
+        bool B = digitalRead(43);
+        encoder_value enc_val = {.A = A, .B = B};
+        int rot = get_encoder_direction(enc_last, enc_val);
+        if (rot == 1) {
+            JS_MOVE_ZP = true;
+            JS_MOVE_ZM = false;
+        } else if (rot == -1) {
+            JS_MOVE_ZM = true;
+            JS_MOVE_ZP = false;
+        } else {
+            JS_MOVE_ZP = false;
+            JS_MOVE_ZM = false;
+        }
+        enc_last = enc_val;
     }
 }
 
 bool XH_last, XL_last, YH_last, YL_last;
 bool SW_last = 0, A_last = 0, B_last = 0;
-encoder_value enc_last = {.A = 0, .B = 0};
 void LCD_update_js()
 {
     if (UI_update) {
@@ -1678,7 +1696,7 @@ void LCD_update_js()
             } else if (rot == -1) {
                 tft.print("Left ");
             }
-            enc_last = enc_val;
+            //enc_last = enc_val;
             // if (A) {
             //     tft.print("A ");
             // }
@@ -1790,6 +1808,28 @@ void heartbeat_itr()
     }
 }
 
+#ifndef GITVERSION
+#define GITVERSION ERR
+#endif
+#define MYSTRINGIFY(X) #X
+
+bool PRINT_BUILD = true;
+void print_build_info()
+{
+    if (UI_update && PRINT_BUILD) {
+        PRINT_BUILD = false;
+        LCD_clear_line(9);
+        tft.print("Build ");
+        tft.print(__DATE__);
+        tft.print(" ");
+        tft.print(__TIME__);
+
+        LCD_clear_line(10);
+        tft.print("Version: ");
+        tft.print(MYSTRINGIFY(GITVERSION));
+    }
+}
+
 template<char AXIS_LETTER, char DRIVER_ID, AxisEnum AXIS_ID>
 uint8_t get_stepper_status(TMCMarlin<TMC2660Stepper, AXIS_LETTER, DRIVER_ID, AXIS_ID> &st) 
 {
@@ -1829,32 +1869,45 @@ void loop() {
     char cmdbuf[20];
 
     if (JS_MOVE_UP) {
-        snprintf(cmdbuf, 19, "G0 Y%f", current_position.y+1);
+        snprintf(cmdbuf, 19, "G0 Y%f", current_position.y-1);
         queue.enqueue_one_now(cmdbuf);
         queue.enqueue_one_now("M400");
         JS_MOVE_UP=false;
     } 
 
     if (JS_MOVE_DOWN) {
-        snprintf(cmdbuf, 19, "G0 Y%f", current_position.y-1);
+        snprintf(cmdbuf, 19, "G0 Y%f", current_position.y+1);
         queue.enqueue_one_now(cmdbuf);
         queue.enqueue_one_now("M400");
         JS_MOVE_DOWN=false;
     } 
 
     if (JS_MOVE_RIGHT) {
-        snprintf(cmdbuf, 19, "G0 X%f", current_position.x+1);
+        snprintf(cmdbuf, 19, "G0 X%f", current_position.x-1);
         queue.enqueue_one_now(cmdbuf);
         queue.enqueue_one_now("M400");
         JS_MOVE_RIGHT=false;
     } 
 
     if (JS_MOVE_LEFT) {
-        snprintf(cmdbuf, 19, "G0 X%f", current_position.x-1);
+        snprintf(cmdbuf, 19, "G0 X%f", current_position.x+1);
         queue.enqueue_one_now(cmdbuf);
         queue.enqueue_one_now("M400");
         JS_MOVE_LEFT=false;
     } 
+
+    if (JS_MOVE_ZP) {
+        snprintf(cmdbuf, 19, "G0 Z%f", current_position.z+1);
+        queue.enqueue_one_now(cmdbuf);
+        queue.enqueue_one_now("M400");
+        JS_MOVE_ZP = false;
+    }
+    if (JS_MOVE_ZM) {
+        snprintf(cmdbuf, 19, "G0 Z%f", current_position.z-1);
+        queue.enqueue_one_now(cmdbuf);
+        queue.enqueue_one_now("M400");
+        JS_MOVE_ZM = false;
+    }
   //update_xyz(current_position.x, current_position.y, current_position.z);
     if (REQ_STEPPER_INIT) {
         REQ_STEPPER_INIT = false;
@@ -1868,6 +1921,7 @@ void loop() {
     }
     queue.advance();
     endstops.event_handler();
+    print_build_info();
 
 
     UI_update = true;

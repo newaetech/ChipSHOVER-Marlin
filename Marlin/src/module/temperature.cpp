@@ -2843,10 +2843,11 @@ void Temperature::tick() {
         released = true;
         HOME_BUTTON_COUNTER = 0;
     }
-    LCD_update_js();
+    //LCD_update_js();
 
 
     if (LCD_update_div++ > 5) {
+        
         LCD_update_div = 0;
         update_xyz(lops.x, lops.y, lops.z);
         ui_error_update();
