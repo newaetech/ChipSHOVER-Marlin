@@ -2514,6 +2514,8 @@ void check_LCD();
 void handle_estop();
 void LCD_update_js();
 void handle_js();
+void print_build_info();
+void print_steps_mm();
 extern uint32_t usb_conn_active;
 
 extern bool UI_update;
@@ -2850,6 +2852,8 @@ void Temperature::tick() {
         
         LCD_update_div = 0;
         update_xyz(lops.x, lops.y, lops.z);
+        print_build_info();
+        print_steps_mm();
         ui_error_update();
         if (usb_conn_active > 0) {
             digitalWrite(85, 1);

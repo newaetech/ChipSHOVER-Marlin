@@ -1460,14 +1460,15 @@ void check_LCD()
   uint16_t cnt = 0;
   uint8_t cnt2 = 0;
   uint8_t is_idle = 1;
-  #define CHARWIDTH 11
-  #define CHARHEIGHT 16
+  #define CHARSZ 1
+  #define CHARWIDTH 6 * CHARSZ
+  #define CHARHEIGHT 8 * CHARSZ
 
 extern uint8_t CS_STATUS;
 void LCD_clear_line(uint8_t line, uint16_t colour=ILI9341_WHITE)
 {
     tft.fillRect(CHARWIDTH*0, CHARHEIGHT*line, CHARWIDTH*50, CHARHEIGHT, ILI9341_BLACK);
-    tft.setTextColor(colour); tft.setTextSize(2);
+    tft.setTextColor(colour); tft.setTextSize(CHARSZ);
     tft.setCursor(0, CHARHEIGHT*line);
 }
 
@@ -1481,7 +1482,7 @@ void LCD_clear_line(uint8_t line, uint16_t colour=ILI9341_WHITE)
 
   void set_status_busy() {
     is_idle = 0;
-    tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(2);
+    tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(CHARSZ);
     delete_status();
     set_cursor_at_status();
     tft.print("Busy");
@@ -1491,7 +1492,7 @@ void LCD_clear_line(uint8_t line, uint16_t colour=ILI9341_WHITE)
     if (is_idle) {
       return;
     }
-    tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(2);
+    tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(CHARSZ);
     delete_status();
     set_cursor_at_status();
     tft.print("Idle");
@@ -1760,7 +1761,7 @@ void ui_error_update()
     if (UI_update) {
         uint8_t status = get_stepper_status(stepperX);
         if (status_x != status) {
-            tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+            tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(CHARSZ);
             tft.fillRect(0, CHARHEIGHT * 5, 40 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
             tft.setCursor(0, CHARHEIGHT * 5);
             tft.print("Status X: ");
@@ -1772,7 +1773,7 @@ void ui_error_update()
 
         status = get_stepper_status(stepperY);
         if (status_y != status) {
-            tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+            tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(CHARSZ);
             tft.fillRect(0, CHARHEIGHT * 6, 40 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
             tft.setCursor(0, CHARHEIGHT * 6);
             tft.print("Status Y: ");
@@ -1783,7 +1784,7 @@ void ui_error_update()
 
         status = get_stepper_status(stepperZ);
         if (status_z != status) {
-            tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+            tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(CHARSZ);
             tft.fillRect(0, CHARHEIGHT * 7, 40 * CHARWIDTH, 1 * CHARHEIGHT, ILI9341_BLACK);
             tft.setCursor(0, CHARHEIGHT * 7);
             tft.print("Status Z: ");
@@ -1799,9 +1800,9 @@ void heartbeat_itr()
     if (UI_update) {
         if (cnt++ == 100) {
         cnt = 0;
-        tft.setTextColor(ILI9341_BLACK);  tft.setTextSize(2);
+        tft.setTextColor(ILI9341_BLACK);  tft.setTextSize(CHARSZ);
         tft.fillRect(10*18, 14+3, 10*4, 14+1, ILI9341_BLACK);
-        tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(2);
+        tft.setTextColor(ILI9341_YELLOW);  tft.setTextSize(CHARSZ);
         tft.setCursor(10*18, 14+3);
         tft.print(cnt2++, 10);
         }
@@ -1816,8 +1817,8 @@ void print_build_info()
 {
     if (UI_update && PRINT_BUILD) {
         PRINT_BUILD = false;
-        LCD_clear_line(9);
-        tft.print("Build ");
+        LCD_clear_line(9, ILI9341_GREEN);
+        tft.print("Build: ");
         tft.print(__DATE__);
         tft.print(" ");
         tft.print(__TIME__);
@@ -1825,6 +1826,46 @@ void print_build_info()
         LCD_clear_line(10);
         tft.print("Version: ");
         tft.print(MYXSTR(GITVERSION));
+        tft.print(" EEPROM: ");
+        #if ENABLED(EEPROM_SETTINGS)
+            tft.print("YES");
+        #else
+            tft.print("NO");
+        #endif
+
+        LCD_clear_line(12, ILI9341_GREEN);
+        tft.print("Limits: ");
+        tft.print(MYXSTR(X_MAX_POS) "/");
+        tft.print(MYXSTR(Y_MAX_POS) "/");
+        tft.print(MYXSTR(Z_MAX_POS) " ");
+
+        LCD_clear_line(14, ILI9341_GREEN);
+        tft.print("Microsteps: ");
+        tft.print(MYXSTR(X_MICROSTEPS) "/");
+        tft.print(MYXSTR(Y_MICROSTEPS) "/");
+        tft.print(MYXSTR(Z_MICROSTEPS) " ");
+
+    }
+}
+
+float XSTEPS_MM=0, YSTEPS_MM=0, ZSTEPS_MM=0;
+void print_steps_mm()
+{
+    if (UI_update) {
+        if ((planner.settings.axis_steps_per_mm[0] != XSTEPS_MM) || 
+        (planner.settings.axis_steps_per_mm[1] != YSTEPS_MM) || 
+        (planner.settings.axis_steps_per_mm[2] != ZSTEPS_MM)) {
+            LCD_clear_line(13);
+            tft.print("Steps/mm: ");
+            tft.print(planner.settings.axis_steps_per_mm[0],0);
+            tft.print("/");
+            tft.print(planner.settings.axis_steps_per_mm[1],0);
+            tft.print("/");
+            tft.print(planner.settings.axis_steps_per_mm[2],0);
+            XSTEPS_MM = planner.settings.axis_steps_per_mm[0];
+            YSTEPS_MM = planner.settings.axis_steps_per_mm[1];
+            ZSTEPS_MM = planner.settings.axis_steps_per_mm[2];
+        }
     }
 }
 
@@ -1919,7 +1960,6 @@ void loop() {
     }
     queue.advance();
     endstops.event_handler();
-    print_build_info();
 
 
     UI_update = true;
