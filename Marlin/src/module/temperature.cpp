@@ -2509,7 +2509,7 @@ void update_xyz(float x, float y, float z);
 void ui_error_update();
 void heartbeat_itr();
 void handle_pause();
-void update_UI_status_msg(const char *msg);
+void update_UI_status_msg(const char *msg, bool clear=true);
 void check_LCD();
 void handle_estop();
 void LCD_update_js();
@@ -2518,10 +2518,10 @@ void handle_js();
 extern bool UI_update;
 
 enum {
-    CS_STAT_RUNNING,
-    CS_STAT_BUSY,
-    CS_STAT_UNHOMED,
-    CS_STAT_ESTOP
+    CS_STAT_RUNNING = 0,
+    CS_STAT_BUSY = 1,
+    CS_STAT_UNHOMED = 2,
+    CS_STAT_ESTOP = 4
 
 } CHIPSHOVER_STATUS;
 
@@ -2820,19 +2820,19 @@ void Temperature::tick() {
 
 
     if (!digitalRead(57)) {
-        CS_STATUS = CS_STAT_ESTOP;
+        CS_STATUS |= CS_STAT_ESTOP;
         handle_estop();
     }
     if (!digitalRead(55)) {
         //pause button
         if (released) {
             handle_pause();
-            if (CS_STATUS != CS_STAT_ESTOP)
-                CS_STATUS = CS_STAT_UNHOMED;
+            if (!(CS_STATUS & CS_STAT_ESTOP))
+                CS_STATUS |= CS_STAT_UNHOMED;
         }
         released = false;
         if ((HOME_BUTTON_COUNTER++ >= 1464)) { //should be ~3 seconds if this really is 488Hz
-            if (CS_STATUS == CS_STAT_ESTOP) {
+            if (CS_STATUS & CS_STAT_ESTOP) {
 
             }
             button_homing();
@@ -2842,7 +2842,6 @@ void Temperature::tick() {
         released = true;
         HOME_BUTTON_COUNTER = 0;
     }
-
     LCD_update_js();
 
     if (LCD_update_div++ > 5) {
@@ -2850,30 +2849,28 @@ void Temperature::tick() {
         update_xyz(lops.x, lops.y, lops.z);
         ui_error_update();
         if ((CS_STATUS != CS_STATUS_PREV) && UI_update) {
+            update_UI_status_msg("ChipSHOVER: ", true);
             CS_STATUS_PREV = CS_STATUS;
-            switch(CS_STATUS) {
-                case CS_STAT_RUNNING:
-                    update_UI_status_msg("Idle");
-                    digitalWrite(72, 0);
-                    digitalWrite(22, 0);
-                    break;
-                case CS_STAT_BUSY:
-                    update_UI_status_msg("Busy");
-                    digitalWrite(72, 0);
-                    digitalWrite(22, 1);
-                    break;
-                case CS_STAT_UNHOMED:
-                    update_UI_status_msg("Unhomed");
-                    digitalWrite(72, 1);
-                    break;
-                case CS_STAT_ESTOP:
-                    update_UI_status_msg("ESTOP\nRESTART REQUIRED");
-                    digitalWrite(72, 1);
-                    break;
-                default:
-                    update_UI_status_msg("Unknown Error!");
-                    break;
+            if (CS_STATUS & CS_STAT_BUSY) {
+                update_UI_status_msg("Busy ", false);
+                digitalWrite(22, 1);
+            } else {
+                update_UI_status_msg("Idle ", false);
+                digitalWrite(22, 0);
             }
+
+            if (CS_STATUS & CS_STAT_UNHOMED) {
+                update_UI_status_msg("Unhomed", false);
+                digitalWrite(72, 1);
+            } else {
+
+                digitalWrite(72, 0);
+            }
+
+            if (CS_STATUS & CS_STAT_ESTOP) {
+                update_UI_status_msg("ChipSHOVER: ESTOP");
+            }
+
         }
     }
     sei();

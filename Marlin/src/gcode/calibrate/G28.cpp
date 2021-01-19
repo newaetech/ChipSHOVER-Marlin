@@ -323,7 +323,7 @@ void GcodeSuite::G28() {
                doX = home_all || homeX, doY = home_all || homeY, doZ = home_all || homeZ;
     
     if ((!needX || doX) && (!needY || doY) && (!axes_should_home(_BV(Z_AXIS)) || doZ)) {
-        CS_STATUS = 0x01; //busy
+        CS_STATUS = 0x01; //busy, homed
     }
     #if ENABLED(HOME_Z_FIRST)
 

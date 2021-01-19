@@ -1564,11 +1564,13 @@ void handle_pause()
     }
 }
 
-void update_UI_status_msg(const char *msg)
+void update_UI_status_msg(const char *msg, bool clear=true)
 {
     if (UI_update) {
-        LCD_clear_line(0);
-        tft.print("ChipSHOVER: ");
+        if (clear) {
+            LCD_clear_line(0);
+        }
+        //tft.print("ChipSHOVER: ");
         tft.print(msg);
     }
 }
