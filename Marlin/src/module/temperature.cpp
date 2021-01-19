@@ -2514,6 +2514,7 @@ void check_LCD();
 void handle_estop();
 void LCD_update_js();
 void handle_js();
+extern uint32_t usb_conn_active;
 
 extern bool UI_update;
 
@@ -2843,6 +2844,13 @@ void Temperature::tick() {
         HOME_BUTTON_COUNTER = 0;
     }
     LCD_update_js();
+
+    if (usb_conn_active > 0) {
+        digitalWrite(85, 1);
+        usb_conn_active--;
+    } else {
+        digitalWrite(85, 0);
+    }
 
     if (LCD_update_div++ > 5) {
         LCD_update_div = 0;

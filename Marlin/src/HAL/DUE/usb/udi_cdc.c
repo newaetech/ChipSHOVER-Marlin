@@ -632,7 +632,7 @@ static bool udi_cdc_rx_start(uint8_t port)
 			udi_cdc_data_received);
 }
 
-
+uint32_t usb_conn_active = 0;
 static void udi_cdc_data_received(udd_ep_status_t status, iram_size_t n, udd_ep_id_t ep)
 {
 	uint8_t buf_sel_trans;
@@ -654,6 +654,10 @@ static void udi_cdc_data_received(udd_ep_status_t status, iram_size_t n, udd_ep_
 		// Abort reception
 		return;
 	}
+    //digitalWrite(85, 1);
+    if (usb_conn_active < 10) {
+        usb_conn_active++;
+    }
 	buf_sel_trans = (udi_cdc_rx_buf_sel[port]==0)?1:0;
 	if (!n) {
 		udd_ep_run( ep,
@@ -666,6 +670,7 @@ static void udi_cdc_data_received(udd_ep_status_t status, iram_size_t n, udd_ep_
 	udi_cdc_rx_buf_nb[port][buf_sel_trans] = n;
 	udi_cdc_rx_trans_ongoing[port] = false;
 	udi_cdc_rx_start(port);
+    //digitalWrite(85, 0);
 }
 
 
@@ -690,6 +695,10 @@ static void udi_cdc_data_sent(udd_ep_status_t status, iram_size_t n, udd_ep_id_t
 		// Abort transfer
 		return;
 	}
+    if (usb_conn_active < 10) {
+        usb_conn_active++;
+    }
+    //digitalWrite(85, 1);
 	udi_cdc_tx_buf_nb[port][(udi_cdc_tx_buf_sel[port]==0)?1:0] = 0;
 	udi_cdc_tx_both_buf_to_send[port] = false;
 	udi_cdc_tx_trans_ongoing[port] = false;
@@ -698,6 +707,7 @@ static void udi_cdc_data_sent(udd_ep_status_t status, iram_size_t n, udd_ep_id_t
 		UDI_CDC_TX_EMPTY_NOTIFY(port);
 	}
 	udi_cdc_tx_send(port);
+    //digitalWrite(85, 0);
 }
 
 
@@ -865,7 +875,13 @@ bool udi_cdc_multi_is_rx_ready(uint8_t port)
 
 bool udi_cdc_is_rx_ready(void)
 {
-	return udi_cdc_multi_is_rx_ready(0);
+	bool rtn =  udi_cdc_multi_is_rx_ready(0);
+    if (rtn) {
+        //digitalWrite(85, 1);
+    } else {
+        //digitalWrite(85, 0);
+    }
+	return rtn;
 }
 
 int udi_cdc_multi_getc(uint8_t port)
@@ -1104,6 +1120,7 @@ iram_size_t __attribute__((optimize("O0"))) udi_cdc_multi_write_buf(uint8_t port
 	uint16_t buf_nb;
 	iram_size_t copy_nb;
 	uint8_t *ptr_buf = (uint8_t *)buf;
+    //digitalWrite(85, 1);
 
 #if UDI_CDC_PORT_NB == 1 // To optimize code
 	port = 0;
@@ -1117,6 +1134,7 @@ udi_cdc_write_buf_loop_wait:
 	// Check available space
 	if (!udi_cdc_multi_is_tx_ready(port)) {
 		if (!udi_cdc_data_running) {
+            //digitalWrite(85, 0);
 			return size;
 		}
 		goto udi_cdc_write_buf_loop_wait;
@@ -1142,6 +1160,7 @@ udi_cdc_write_buf_loop_wait:
 		goto udi_cdc_write_buf_loop_wait;
 	}
 
+    //digitalWrite(85, 0);
 	return 0;
 }
 
