@@ -1808,9 +1808,7 @@ void heartbeat_itr()
     }
 }
 
-#ifndef GITVERSION
-#define GITVERSION ERR
-#endif
+#define MYXSTR(X) MYSTRINGIFY(X)
 #define MYSTRINGIFY(X) #X
 
 bool PRINT_BUILD = true;
@@ -1826,7 +1824,7 @@ void print_build_info()
 
         LCD_clear_line(10);
         tft.print("Version: ");
-        tft.print(MYSTRINGIFY(GITVERSION));
+        tft.print(MYXSTR(GITVERSION));
     }
 }
 
