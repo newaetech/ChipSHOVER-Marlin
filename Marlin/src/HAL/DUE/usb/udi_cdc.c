@@ -656,7 +656,8 @@ static void udi_cdc_data_received(udd_ep_status_t status, iram_size_t n, udd_ep_
 	}
     //digitalWrite(85, 1);
     if (usb_conn_active < 10) {
-        usb_conn_active++;
+        usb_conn_active=10;
+        //usb_conn_active++;
     }
 	buf_sel_trans = (udi_cdc_rx_buf_sel[port]==0)?1:0;
 	if (!n) {
@@ -696,7 +697,7 @@ static void udi_cdc_data_sent(udd_ep_status_t status, iram_size_t n, udd_ep_id_t
 		return;
 	}
     if (usb_conn_active < 10) {
-        usb_conn_active++;
+        usb_conn_active=10;
     }
     //digitalWrite(85, 1);
 	udi_cdc_tx_buf_nb[port][(udi_cdc_tx_buf_sel[port]==0)?1:0] = 0;

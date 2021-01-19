@@ -2845,17 +2845,17 @@ void Temperature::tick() {
     }
     LCD_update_js();
 
-    if (usb_conn_active > 0) {
-        digitalWrite(85, 1);
-        usb_conn_active--;
-    } else {
-        digitalWrite(85, 0);
-    }
 
     if (LCD_update_div++ > 5) {
         LCD_update_div = 0;
         update_xyz(lops.x, lops.y, lops.z);
         ui_error_update();
+        if (usb_conn_active > 0) {
+            digitalWrite(85, 1);
+            usb_conn_active--;
+        } else {
+            digitalWrite(85, 0);
+        }
         if ((CS_STATUS != CS_STATUS_PREV) && UI_update) {
             update_UI_status_msg("ChipSHOVER: ", true);
             CS_STATUS_PREV = CS_STATUS;
