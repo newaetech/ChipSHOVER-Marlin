@@ -71,6 +71,9 @@ bool REQ_STEPPER_INIT = false;
 #define JS_PIN_YP 39
 #define JS_PIN_YN 40
 
+#define FUSE_24V_PIN 96
+#define FUSE_5V_PIN 36
+
 
 #define STEPPER_STEP_H_MM 2
 #define STEPPER_STEP_L_MM 0.2
@@ -109,8 +112,9 @@ enum CHIPSHOVER_STATUS {
     CS_STAT_RUNNING = 0,
     CS_STAT_BUSY = 1,
     CS_STAT_UNHOMED = 2,
-    CS_STAT_ESTOP = 4
-
+    CS_STAT_ESTOP = 4,
+    CS_STAT_5V_FUSE = 8,
+    CS_STAT_24V_FUSE = 16,
 } ;
 
 // float XSTEPS_MM=0, YSTEPS_MM=0, ZSTEPS_MM=0;
@@ -120,6 +124,7 @@ uint8_t CS_STATUS_PREV = 255; //should be unknown one
 encoder_value enc_last = {.A = 0, .B = 0};
 
 
+#include <Wire.h>
 
 void chipshover_setup()
 {
@@ -144,24 +149,47 @@ void chipshover_setup()
     bool B = digitalRead(ENC_PIN_B);
     encoder_value enc_val = {.A = A, .B = B};
     enc_last = enc_val;
-    // Wire.begin();
-    // Wire.setClock(100000);
+    Wire1.begin();
+    Wire1.setClock(100000);
 
-    // Wire.beginTransmission(0b1001110);
-    //  Wire.write(byte(0b10011101)); //x
-    //  Wire.write(byte(0x00));
-    //  Wire.endTransmission(false);
-    //  //Wire.write(byte(0b10011100)); //x
-    //  Wire.requestFrom(byte(0b10011100), byte(1)); //x
-    //  while(!Wire.available());
-    //  volatile uint16_t temp = (uint8_t)Wire.read();
-    //  while(!Wire.available());
-    //  temp |= ((uint8_t)Wire.read() << 8);
-    //  Wire.endTransmission();
-    // Wire.write(0x00);
-    // Wire.write(0x00);
-    // Wire.write(0x10);
-    // Wire.endTransmission();
+    Wire1.beginTransmission(0b01010000);
+    Wire1.write(0x00);//addr
+    Wire1.write(0x00);//addr
+    Wire1.write(0xAA);
+    Wire1.endTransmission();
+
+    #define TEMP_ADDR_X 0b1001011
+    #define TEMP_ADDR_Y 0b1001010
+    #define TEMP_ADDR_Z 0b1001001
+
+    // Wire1.beginTransmission(TEMPADDR);
+    // Wire1.write(0x00);
+    // Wire1.endTransmission(false);
+    // volatile uint8_t from = Wire1.requestFrom(TEMPADDR, 2);
+    // volatile uint16_t temp = 0;
+    // if (from > 0) {
+    //     temp = Wire1.read() << 8;
+    //     temp |= Wire1.read();
+
+    //     //Wire1.read((uint8_t *)&temp);
+    //     temp >>= 5;
+    // }
+
+
+    //  Wire1.write(byte(0b10011101)); //x
+    //  Wire1.write(byte(0x00));
+    //  Wire1.endTransmission(false);
+    //  //Wire1.write(byte(0b10011100)); //x
+    //  Wire1.requestFrom(byte(0b10011100), byte(1)); //x
+    //  while(!Wire1.available());
+    //  volatile uint16_t temp = (uint8_t)Wire1.read();
+    //  while(!Wire1.available());
+    //  temp |= ((uint8_t)Wire1.read() << 8);
+    //  Wire1.endTransmission();
+    // Wire1.write(0x00);
+    // Wire1.write(0x00);
+    // Wire1.write(0x10);
+    // Wire1.endTransmission();
 
 }
 
@@ -195,12 +223,48 @@ void LCD_clear_line(uint8_t line, uint16_t colour=ILI9341_WHITE)
   }
 
 double STORED_X = -101, STORED_Y = -100 , STORED_Z = -100;
+float XTEMP = 0;
+
+float read_temp(uint8_t addr)
+{
+
+    Wire1.beginTransmission(addr);
+    Wire1.write(0x00);
+    Wire1.endTransmission(false);
+    uint8_t from = Wire1.requestFrom(addr, 2);
+    uint16_t temp = 0;
+    if (from > 0) {
+        temp = Wire1.read() << 8;
+        temp |= Wire1.read();
+
+        //Wire1.read((uint8_t *)&temp);
+        temp >>= 5;
+    }
+    return (float)temp * 0.125f;
+}
+
+void display_temp()
+{
+    if (UI_update) {
+        LCD_clear_line(9);
+        tft.print("X: ");
+        tft.print(read_temp(TEMP_ADDR_X));
+
+        tft.print(" Y: ");
+        tft.print(read_temp(TEMP_ADDR_Y));
+
+        tft.print(" Z: ");
+        tft.print(read_temp(TEMP_ADDR_Z));
+    }
+}
+
 void update_xyz(float x, float y, float z) {
   if (UI_update) {
     if (STORED_X != x) {
       LCD_clear_line(2, ILI9341_YELLOW);
       tft.print("X: ");
       tft.print(x, 3);
+
       STORED_X = x;
     }
     if (STORED_Y != y) {
@@ -241,8 +305,8 @@ uint8_t motor_err_index(uint8_t err)
 void handle_estop()
 {
     if (UI_update) {
-        //EmergencyParser::State st = EmergencyParser::EP_M410;
-        EmergencyParser::State st = EmergencyParser::EP_M112;
+        EmergencyParser::State st = EmergencyParser::EP_M410;
+        // EmergencyParser::State st = EmergencyParser::EP_M112;
         emergency_parser.update(st, '\n');
     }
 }
@@ -494,10 +558,9 @@ void print_build_info()
     static float XSTEPS_MM, YSTEPS_MM, ZSTEPS_MM;
     static bool NOT_PRINT_BUILD; //reversed since static starts as 0
     if (UI_update && !NOT_PRINT_BUILD) {
-        NOT_PRINT_BUILD = true;
         LCD_clear_line(9, ILI9341_GREEN);
         tft.setTextSize(1);
-        tft.print("\n\n\n\n\n\n\nBuild: ");
+        tft.print("\n\n\n\n\n\nBuild: ");
         tft.print(__DATE__);
         tft.print(" ");
         tft.print(__TIME__);
@@ -547,6 +610,9 @@ void print_build_info()
         tft.print(MYXSTR(X_MICROSTEPS) "/");
         tft.print(MYXSTR(Y_MICROSTEPS) "/");
         tft.print(MYXSTR(Z_MICROSTEPS) " ");
+
+        tft.print("\nBased on MARLIN 3D Printer Firmware");
+        NOT_PRINT_BUILD = true;
     }
 }
 
@@ -575,58 +641,59 @@ uint8_t get_stepper_status(TMCMarlin<TMC2660Stepper, AXIS_LETTER, DRIVER_ID, AXI
     return rtn;
 }
 
+bool REINIT_STEPPERS=false;
 void chipshover_loop()
 {
     char cmdbuf[20];
+    if (REINIT_STEPPERS) {
+        queue.clear();
+        queue.enqueue_one_now("M122 I");
+        REINIT_STEPPERS=false;
+    }
 
-    if (JS_MOVE_UP) {
+    else if (JS_MOVE_UP) {
         snprintf(cmdbuf, 19, "G0 Y%f", current_position.y+STEPPER_STEP_SZ);
         queue.enqueue_one_now(cmdbuf);
         queue.enqueue_one_now("M400");
         JS_MOVE_UP=false;
     } 
 
-    if (JS_MOVE_DOWN) {
+    else if (JS_MOVE_DOWN) {
         snprintf(cmdbuf, 19, "G0 Y%f", current_position.y-STEPPER_STEP_SZ);
         queue.enqueue_one_now(cmdbuf);
         queue.enqueue_one_now("M400");
         JS_MOVE_DOWN=false;
     } 
 
-    if (JS_MOVE_RIGHT) {
+    else if (JS_MOVE_RIGHT) {
         snprintf(cmdbuf, 19, "G0 X%f", current_position.x+STEPPER_STEP_SZ);
         queue.enqueue_one_now(cmdbuf);
         queue.enqueue_one_now("M400");
         JS_MOVE_RIGHT=false;
     } 
 
-    if (JS_MOVE_LEFT) {
+    else if (JS_MOVE_LEFT) {
         snprintf(cmdbuf, 19, "G0 X%f", current_position.x-STEPPER_STEP_SZ);
         queue.enqueue_one_now(cmdbuf);
         queue.enqueue_one_now("M400");
         JS_MOVE_LEFT=false;
     } 
 
-    if (JS_MOVE_ZP) {
+    else if (JS_MOVE_ZP) {
         snprintf(cmdbuf, 19, "G0 Z%f", current_position.z+STEPPER_STEP_SZ);
         queue.enqueue_one_now(cmdbuf);
         queue.enqueue_one_now("M400");
         JS_MOVE_ZP = false;
     }
-    if (JS_MOVE_ZM) {
+    else if (JS_MOVE_ZM) {
         snprintf(cmdbuf, 19, "G0 Z%f", current_position.z-STEPPER_STEP_SZ);
         queue.enqueue_one_now(cmdbuf);
         queue.enqueue_one_now("M400");
         JS_MOVE_ZM = false;
     }
   //update_xyz(current_position.x, current_position.y, current_position.z);
-    if (REQ_STEPPER_INIT) {
-        REQ_STEPPER_INIT = false;
-        stepper.init();          // Init stepper. This enables interrupts!
 
-    }
-
-    if (REQ_BUTTON_HOME) {
+    else if (REQ_BUTTON_HOME) {
         queue.enqueue_one_now("G28 XYZ");
         REQ_BUTTON_HOME = false;
     }
@@ -641,6 +708,7 @@ void chipshover_tick()
     static bool JOG_FAST_RELEASED;
     static uint16_t HOME_BUTTON_COUNTER = 0;
     static uint8_t LCD_update_div = 0;
+    static uint8_t temp_update_div = 0;
 
     cli();
     handle_js();
@@ -694,6 +762,13 @@ void chipshover_tick()
         HOME_BUTTON_COUNTER = 0;
     }
 
+    if (!digitalRead(FUSE_24V_PIN) && digitalRead(ESTOP_SW_PIN)) {
+        CS_STATUS |= CS_STAT_24V_FUSE;
+    }
+    if (!digitalRead(FUSE_5V_PIN)) {
+        CS_STATUS |= CS_STAT_5V_FUSE;
+    }
+
     if (LCD_update_div++ > 5) {
         
         LCD_update_div = 0;
@@ -707,7 +782,7 @@ void chipshover_tick()
             digitalWrite(USB_CON_LED_PIN, 0);
         }
         if ((CS_STATUS != CS_STATUS_PREV) && UI_update) {
-            update_UI_status_msg("ChipSHOVER: ", true);
+            update_UI_status_msg("ChipShover: ", true);
             CS_STATUS_PREV = CS_STATUS;
             if (CS_STATUS & CS_STAT_BUSY) {
                 update_UI_status_msg("Busy ", false);
@@ -726,11 +801,37 @@ void chipshover_tick()
             }
 
             if (CS_STATUS & CS_STAT_ESTOP) {
-                update_UI_status_msg("ESTOP: RELEASE ESTOP\n(ROTATE) AND POWER CYCLE", true, ILI9341_RED);
+                update_UI_status_msg("ESTOP: RELEASE ESTOP\n", true, ILI9341_RED);
+                while (!digitalRead(ESTOP_SW_PIN)) {
+                    watchdog_refresh();
+                }
+                REINIT_STEPPERS = true;
+                LCD_clear_line(0);
+                LCD_clear_line(1);
+                CS_STATUS = CS_STAT_UNHOMED;
             }
+
+
+            if ((CS_STATUS & (CS_STAT_24V_FUSE | CS_STAT_5V_FUSE)) == (CS_STAT_5V_FUSE | CS_STAT_24V_FUSE)) {
+                update_UI_status_msg("ALL FUSES BLOWN", true, ILI9341_RED);
+            } else if (CS_STATUS & CS_STAT_5V_FUSE) {
+                update_UI_status_msg("5V FUSE BLOWN", true, ILI9341_RED);
+            } else if (CS_STATUS & CS_STAT_24V_FUSE) {
+                update_UI_status_msg("24V FUSE BLOWN", true, ILI9341_RED);
+            }
+
 
         }
         ui_display_step_size();
+        if (temp_update_div++ > 20) {
+            display_temp();
+            temp_update_div = 0;
+        }
     }
     sei();
+}
+
+void M14400()
+{
+    SERIAL_CHAR(CS_STATUS & 1);
 }

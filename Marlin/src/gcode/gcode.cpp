@@ -27,6 +27,7 @@
 
 #include "gcode.h"
 GcodeSuite gcode;
+void M14400();
 
 #if ENABLED(WIFI_CUSTOM_COMMAND)
   extern bool wifi_custom_command(char * const command_ptr);
@@ -926,6 +927,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #endif
 
       case 999: M999(); break;                                    // M999: Restart after being Stopped
+
+      case 14400: M14400(); break;
 
       #if ENABLED(POWER_LOSS_RECOVERY)
         case 413: M413(); break;                                  // M413: Enable/disable/query Power-Loss Recovery
