@@ -150,13 +150,16 @@ void chipshover_setup()
     encoder_value enc_val = {.A = A, .B = B};
     enc_last = enc_val;
     Wire1.begin();
+    #define I2C_LED_PIN 60
+    pinMode(I2C_LED_PIN, OUTPUT);
+    digitalWrite(I2C_LED_PIN, 1);
     Wire1.setClock(100000);
 
-    Wire1.beginTransmission(0b01010000);
-    Wire1.write(0x00);//addr
-    Wire1.write(0x00);//addr
-    Wire1.write(0xAA);
-    Wire1.endTransmission();
+    // Wire1.beginTransmission(0b01010000);
+    // Wire1.write(0x00);//addr
+    // Wire1.write(0x00);//addr
+    // Wire1.write(0xAA);
+    // Wire1.endTransmission();
 
     #define TEMP_ADDR_X 0b1001011
     #define TEMP_ADDR_Y 0b1001010
@@ -626,7 +629,7 @@ void print_build_info()
         tft.print(MYXSTR(Y_MICROSTEPS) "/");
         tft.print(MYXSTR(Z_MICROSTEPS) " ");
 
-        tft.print("\nBased on MARLIN 3D Printer Firmware");
+        tft.print("\nBased on Marlin 3D Printer Firmware");
         NOT_PRINT_BUILD = true;
     }
 }
@@ -837,6 +840,10 @@ void chipshover_tick()
                 update_UI_status_msg("5V FUSE BLOWN", true, ILI9341_RED);
             } else if (CS_STATUS & CS_STAT_24V_FUSE) {
                 update_UI_status_msg("24V FUSE BLOWN", true, ILI9341_RED);
+                //stop from dying
+                while (!digitalRead(FUSE_24V_PIN)) {
+                    watchdog_refresh();
+                }
             }
 
 
