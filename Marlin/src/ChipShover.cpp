@@ -245,16 +245,31 @@ float read_temp(uint8_t addr)
 
 void display_temp()
 {
+    static float old_xtemp, old_ytemp, old_ztemp;
     if (UI_update) {
-        LCD_clear_line(9);
-        tft.print("X: ");
-        tft.print(read_temp(TEMP_ADDR_X));
+        float xtemp = read_temp(TEMP_ADDR_X);
+        float ytemp = read_temp(TEMP_ADDR_Y);
+        float ztemp = read_temp(TEMP_ADDR_Z);
+        bool update_xtemp = fabs(xtemp - old_xtemp) > 0.5f;
+        bool update_ytemp = fabs(ytemp - old_ytemp) > 0.5f;
+        bool update_ztemp = fabs(ztemp - old_ztemp) > 0.5f;
 
-        tft.print(" Y: ");
-        tft.print(read_temp(TEMP_ADDR_Y));
+        if (update_xtemp || update_ytemp || update_ztemp) {
+            LCD_clear_line(9);
+            tft.print("X: ");
+            tft.print(xtemp);
 
-        tft.print(" Z: ");
-        tft.print(read_temp(TEMP_ADDR_Z));
+            tft.print(" Y: ");
+            tft.print(ytemp);
+
+            tft.print(" Z: ");
+            tft.print(ztemp);
+
+            old_xtemp = xtemp;
+            old_ytemp = ytemp;
+            old_ztemp = ztemp;
+        }
+
     }
 }
 
@@ -696,6 +711,10 @@ void chipshover_loop()
     else if (REQ_BUTTON_HOME) {
         queue.enqueue_one_now("G28 XYZ");
         REQ_BUTTON_HOME = false;
+    }
+
+    if (!UI_update) {
+        queue.enqueue_one_now("M106 S 150"); //set fan speed to 150/255
     }
     UI_update = true;
 }
