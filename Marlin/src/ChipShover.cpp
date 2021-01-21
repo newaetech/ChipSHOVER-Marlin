@@ -502,6 +502,49 @@ void button_homing()
         REQ_BUTTON_HOME = true;
     }
 }
+#if SAM4S_SERIES
+#define EEFC_FCR_FCMD(value) \
+    ((EEFC_FCR_FCMD_Msk & ((value) << EEFC_FCR_FCMD_Pos)))
+#define EEFC_ERROR_FLAGS  (EEFC_FSR_FLOCKE | EEFC_FSR_FCMDE | EEFC_FSR_FLERR)
+#else
+#define EEFC_ERROR_FLAGS  (EEFC_FSR_FLOCKE | EEFC_FSR_FCMDE)
+#endif
+#ifdef __ICCARM__
+__ramfunc
+#else
+__attribute__ ((long_call, section(".ramfunc")))
+#endif
+uint32_t efc_perform_fcr(Efc *p_efc, uint32_t ul_fcr)
+{
+	volatile uint32_t ul_status;
+
+	p_efc->EEFC_FCR = ul_fcr;
+	do {
+		ul_status = p_efc->EEFC_FSR;
+	} while ((ul_status & EEFC_FSR_FRDY) != EEFC_FSR_FRDY);
+
+	return (ul_status & EEFC_ERROR_FLAGS);
+}
+
+uint32_t efc_perform_command2(Efc *p_efc, uint32_t ul_command,
+		uint32_t ul_argument)
+{
+	uint32_t result;
+	irqflags_t flags;
+
+	/* Unique ID commands are not supported. */
+	if (ul_command == EFC_FCMD_STUI || ul_command == EFC_FCMD_SPUI) {
+		return EFC_RC_NOT_SUPPORT;
+	}
+
+	flags = cpu_irq_save();
+	/* Use RAM Function. */
+	result = efc_perform_fcr(p_efc,
+			(0x5A << 24) | EEFC_FCR_FARG(ul_argument) |
+			EEFC_FCR_FCMD(ul_command));
+	cpu_irq_restore(flags);
+	return result;
+}
 
 void erase_firmware()
 {
@@ -509,7 +552,11 @@ void erase_firmware()
     //board_power(0);
 
     /* Clear ROM-mapping bit. */
-    efc_perform_command(EFC0, EFC_FCMD_CGPB, 1);	
+    watchdogDisable();
+     efc_perform_command2(EFC0, EFC_FCMD_CGPB, 1);	
+    // EFC0->EEFC_FRR |= (0x5A << 24) | 0x0C | (0x01 << 8);
+
+    // while (!(EFC0->EEFC_FSR & 0x01));
 
     /* Disconnect USB (will kill connection) */
     //udc_detach();
