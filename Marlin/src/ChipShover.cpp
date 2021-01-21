@@ -249,13 +249,20 @@ float read_temp(uint8_t addr)
 void display_temp()
 {
     static float old_xtemp, old_ytemp, old_ztemp;
-    if (UI_update) {
+    static int skip_temp;
+    if (UI_update && (skip_temp < 3)) {
         float xtemp = read_temp(TEMP_ADDR_X);
         float ytemp = read_temp(TEMP_ADDR_Y);
         float ztemp = read_temp(TEMP_ADDR_Z);
         bool update_xtemp = fabs(xtemp - old_xtemp) > 0.5f;
         bool update_ytemp = fabs(ytemp - old_ytemp) > 0.5f;
         bool update_ztemp = fabs(ztemp - old_ztemp) > 0.5f;
+
+        if ((xtemp == 0) && (ytemp == 0) && (ztemp == 0)) {
+            skip_temp++; //if temps don't read, give up
+        } else {
+            skip_temp = 0;
+        }
 
         if (update_xtemp || update_ytemp || update_ztemp) {
             LCD_clear_line(9);
@@ -271,6 +278,9 @@ void display_temp()
             old_xtemp = xtemp;
             old_ytemp = ytemp;
             old_ztemp = ztemp;
+        } else if (UI_update && (skip_temp == 3)) {
+            LCD_clear_line(9, ILI9341_RED);
+            tft.print("COULD NOT READ TEMP");
         }
 
     }
@@ -859,5 +869,5 @@ void chipshover_tick()
 
 void M14400()
 {
-    SERIAL_CHAR(CS_STATUS & 1);
+    SERIAL_CHAR(CS_STATUS & ~1);
 }
